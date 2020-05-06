@@ -50,11 +50,15 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
              %__MODULE__{lose_when_attacked_by: name, uuid: uuid}) when name != nil do
     {:ok, [remove: [uuid]]}
   end
+  def attack(%__MODULE__{uuid: uuid}, %__MODULE__{name: :bomb}) do
+    {:ok, [remove: [uuid]]}
+  end
   def attack(%__MODULE__{rank: rank, uuid: uuid_attacker},
-             %__MODULE__{rank: rank, uuid: uuid_defender}) do
+             %__MODULE__{rank: rank, uuid: uuid_defender}) when rank != nil do
     {:ok, [remove: [uuid_attacker, uuid_defender]]}
   end
-  def attack(attacker, defender) do
+  def attack(%__MODULE__{rank: attacker_rank} = attacker,
+             %__MODULE__{rank: defender_rank} = defender) when nil not in [attacker_rank, defender_rank] do
     if attacker.rank > defender.rank do
       {:ok, [remove: [defender.uuid]]}
     else
