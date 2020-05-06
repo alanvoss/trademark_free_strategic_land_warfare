@@ -45,6 +45,8 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
     %__MODULE__{piece | visible: true}
   end
 
+  def attack(%__MODULE__{name: :flag}, _), do: {:error, "flag can never be the attacker"}
+  def attack(%__MODULE__{name: :bomb}, _), do: {:error, "bomb can never be the attacker"}
   def attack(_, %__MODULE__{name: :flag}), do: {:ok, :win}
 
   def attack(

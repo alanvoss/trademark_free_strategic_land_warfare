@@ -19,6 +19,15 @@ defmodule TrademarkFreeStrategicLandWarfare.PieceTest do
     |> Enum.filter(&(&1.name not in [:bomb, :flag]))
   end
 
+  test "neither bomb nor flag can be attacker", %{pieces: pieces} do
+    pieces
+    |> filter_non_players()
+    |> Enum.each(fn defender ->
+      assert {:error, _} = Piece.attack(pieces.flag, defender)
+      assert {:error, _} = Piece.attack(pieces.bomb, defender)
+    end)
+  end
+
   test "spy attacks marshall", %{pieces: %{spy: spy, marshall: marshall}} do
     assert Piece.attack(spy, marshall) == {:ok, [remove: [marshall.uuid]]}
   end
