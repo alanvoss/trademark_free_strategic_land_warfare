@@ -8,7 +8,7 @@ defmodule TrademarkFreeStrategicLandWarfare.PieceTest do
      %{
        pieces:
          Piece.names()
-         |> Enum.flat_map(&[{&1, Piece.new(&1)}])
+         |> Enum.flat_map(&[{&1, Piece.new(&1, 1)}])
          |> Map.new()
      }}
   end
@@ -17,6 +17,18 @@ defmodule TrademarkFreeStrategicLandWarfare.PieceTest do
     pieces
     |> Map.values()
     |> Enum.filter(&(&1.name not in [:bomb, :flag]))
+  end
+
+  test "create a new piece won't work for player 3" do
+    assert_raise RuntimeError, ~r/^player valid range is 1-2!$/, fn ->
+      Piece.new(:marshall, 3)
+    end
+  end
+
+  test "create a new piece won't work for a nonsense type" do
+    assert_raise RuntimeError, ~r/^piece name must be one of/, fn ->
+      Piece.new(:nonsense, 2)
+    end
   end
 
   test "neither bomb nor flag can be attacker", %{pieces: pieces} do

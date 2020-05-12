@@ -27,13 +27,22 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
 
   @names Map.keys(@name_properties)
 
-  def new(name) when name in @names do
+  def new(_, player) when player < 1 or player > 2 do
+    raise "player valid range is 1-2!"
+  end
+
+  def new(name, _) when name not in @names do
+    raise "piece name must be one of #{inspect(@names)}!"
+  end
+
+  def new(name, player) when name in @names do
     properties =
       Map.merge(
         %{
+          uuid: UUID.uuid1(),
+          player: player,
           name: name,
-          visible: false,
-          uuid: UUID.uuid1()
+          visible: false
         },
         @name_properties[name]
       )
