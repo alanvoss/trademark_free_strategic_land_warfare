@@ -31,6 +31,11 @@ defmodule TrademarkFreeStrategicLandWarfare.PieceTest do
     end
   end
 
+  test "reveal switches a piece from invisible to visible" do
+    assert %Piece{visible: false} = scout = Piece.new(:scout, 2)
+    assert %Piece{visible: true} = Piece.reveal(scout)
+  end
+
   test "neither bomb nor flag can be attacker", %{pieces: pieces} do
     pieces
     |> filter_non_players()
