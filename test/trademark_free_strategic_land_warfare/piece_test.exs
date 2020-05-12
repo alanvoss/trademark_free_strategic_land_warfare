@@ -3,6 +3,16 @@ defmodule TrademarkFreeStrategicLandWarfare.PieceTest do
 
   alias TrademarkFreeStrategicLandWarfare.Piece
 
+  setup_all do
+    {:ok,
+     %{
+       pieces:
+         Piece.names()
+         |> Enum.flat_map(&[{&1, Piece.new(&1, 1)}])
+         |> Map.new()
+     }}
+  end
+
   def filter_non_players(pieces) do
     pieces
     |> Map.values()
@@ -24,34 +34,32 @@ defmodule TrademarkFreeStrategicLandWarfare.PieceTest do
   end
 
   describe "reveal" do
-    test "reveal switches a piece from invisible to visible" do
-      assert %Piece{visible: false} = scout = Piece.new(:scout, 2)
+    test "reveal switches a piece from invisible to visible", %{pieces: %{scout: scout}} do
+      assert scout.visible == false
       assert %Piece{visible: true} = Piece.reveal(scout)
     end
   end
 
   describe "maybe_mask" do
-    test "maybe_mask hides nothing for current player" do
+    test "maybe_mask hides nothing for current player", %{
+      pieces: %{lieutenant: %Piece{rank: rank} = lieutenant}
+    } do
+      assert %Piece{name: :lieutenant, rank: ^rank} = Piece.maybe_mask(lieutenant, 1)
     end
 
-    test "maybe_mask hides iname, rank, and lose_when_attacked_by for other player when not visible" do
+    test "maybe_mask hides fields for other player when not visible", %{pieces: %{major: major}} do
+      assert %Piece{name: nil, rank: nil} = Piece.maybe_mask(major, 2)
     end
 
-    test "maybe_mask hides nothing for other player when visible" do
+    test "maybe_mask hides nothing for other player when visible", %{
+      pieces: %{colonel: %Piece{rank: rank} = colonel}
+    } do
+      revealed_piece = Piece.reveal(colonel)
+      assert %Piece{name: :colonel, rank: ^rank} = Piece.maybe_mask(revealed_piece, 2)
     end
   end
 
   describe "attack" do
-    setup do
-      {:ok,
-       %{
-         pieces:
-           Piece.names()
-           |> Enum.flat_map(&[{&1, Piece.new(&1, 1)}])
-           |> Map.new()
-       }}
-    end
-
     test "neither bomb nor flag can be attacker", %{pieces: pieces} do
       pieces
       |> filter_non_players()

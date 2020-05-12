@@ -1,9 +1,10 @@
 defmodule TrademarkFreeStrategicLandWarfare.Piece do
-  @enforce_keys [:uuid, :name, :visible, :rank, :lose_when_attacked_by]
-  defstruct uuid: nil, name: nil, visible: nil, rank: nil, lose_when_attacked_by: nil
+  @enforce_keys [:uuid, :player, :visible]
+  defstruct uuid: nil, player: nil, name: nil, visible: nil, rank: nil, lose_when_attacked_by: nil
 
   @type t() :: %__MODULE__{
           uuid: String.t(),
+          player: Integer.t(),
           name: String.t(),
           visible: boolean(),
           rank: Integer.t(),
@@ -52,6 +53,28 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
 
   def reveal(piece) do
     %__MODULE__{piece | visible: true}
+  end
+
+  # current player, show piece
+  def maybe_mask(piece = %__MODULE__{player: player}, player) do
+    piece
+  end
+
+  # opposing player, visible (was previously exposed), show piece
+  def maybe_mask(piece = %__MODULE__{visible: true}, _) do
+    piece
+  end
+
+  # opposing player, not visible, mask piece
+  def maybe_mask(piece, _) do
+    %__MODULE__{
+      uuid: piece.uuid,
+      player: piece.player,
+      name: nil,
+      visible: piece.visible,
+      rank: nil,
+      lose_when_attacked_by: nil
+    }
   end
 
   def attack(%__MODULE__{name: :flag}, _), do: {:error, "flag can never be the attacker"}
