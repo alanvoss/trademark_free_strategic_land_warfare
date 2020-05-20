@@ -37,6 +37,10 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
           lookup: Map.t()
         }
 
+  def piece_name_counts() do
+    @piece_name_counts
+  end
+
   def new() do
     %__MODULE__{
       rows: @empty_board,
