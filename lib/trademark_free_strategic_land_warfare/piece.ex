@@ -65,6 +65,8 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
     piece
   end
 
+  def maybe_mask(piece) when piece in [nil, :lake], do: piece
+
   # opposing player, not visible, mask piece
   def maybe_mask(piece, _) do
     %__MODULE__{
