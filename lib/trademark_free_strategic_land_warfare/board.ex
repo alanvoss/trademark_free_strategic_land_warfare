@@ -83,10 +83,8 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
       nil ->
         nil
 
-      {coord, piece} ->
-        translated_coord = translate_coord(coord, player)
-        masked_piece = Piece.maybe_mask(piece, player)
-        {translated_coord, masked_piece}
+      coord ->
+        {translate_coord(coord, player), lookup_by_coord(board, coord)}
     end
   end
 
@@ -116,7 +114,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     board
     |> remove_piece(piece)
     |> put_in([Access.key(:rows), Access.at(translated_y), Access.at(translated_x)], piece)
-    |> put_in([Access.key(:lookup), piece.uuid], {{translated_x, translated_y}, piece})
+    |> put_in([Access.key(:lookup), piece.uuid], {translated_x, translated_y})
   end
 
   def maybe_flip(rows, 1), do: rows
