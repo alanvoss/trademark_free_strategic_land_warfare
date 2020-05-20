@@ -97,7 +97,17 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     get_in(board.rows, [Access.at(y), Access.at(x)])
   end
 
+  def remove_pieces(%__MODULE__{} = board, pieces) do
+    Enum.reduce(pieces, board, fn piece_to_remove, acc ->
+      remove_piece(acc, piece_to_remove)
+    end)
+  end
+
   def remove_piece(%__MODULE__{} = board, %Piece{uuid: uuid}) do
+    remove_piece(board, uuid)
+  end
+
+  def remove_piece(%__MODULE__{} = board, uuid) do
     case lookup_by_uuid(board, uuid) do
       nil ->
         board
@@ -112,7 +122,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     end
   end
 
-  def place_piece(%__MODULE__{} = board, piece, {x, y}, player \\ 1) do
+  def place_piece(%__MODULE__{} = board, %Piece{} = piece, {x, y}, player \\ 1) do
     {translated_x, translated_y} = translate_coord({x, y}, player)
 
     board
@@ -176,6 +186,9 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     with {:ok, new_coord} <- new_coordinate({x, y}, direction) do
       case lookup_by_coord(board, new_coord) do
         nil ->
+          # we are advancing by at least two, so other player now has knowledge that
+          # this is a scout piece, so revealing it.
+          piece = Piece.reveal(piece)
           advance(board, piece, new_coord, direction, count - 1)
 
         _ ->
@@ -198,7 +211,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
           {:error, "cannot move into lake"}
 
         %Piece{} = defender ->
-          attack(board, piece, defender)
+          attack(board, piece, defender, new_coord)
       end
     end
   end
@@ -207,14 +220,27 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     {:error, "all pieces except the scout can only advance 1"}
   end
 
-  defp attack(board, piece, defender) do
-    case Piece.attack(piece, defender) do
+  defp attack(board, attacker, defender, coord) do
+    case Piece.attack(attacker, defender) do
       {:ok, actions} when is_list(actions) ->
-        actions
-        |> Keyword.get(:remove, [])
-        |> Enum.reduce({:ok, board}, fn piece_to_remove, {:ok, acc} ->
-          {:ok, remove_piece(acc, piece_to_remove)}
-        end)
+        pieces_to_remove = actions[:remove]
+        maybe_piece_to_place = [attacker.uuid, defender.uuid] -- pieces_to_remove
+        board_with_removed_pieces = remove_pieces(board, pieces_to_remove)
+
+        case maybe_piece_to_place do
+          [uuid] ->
+            {_, piece} = lookup_by_uuid(board, uuid)
+
+            # attack happened, so piece type had to be announced, so revealing
+            # it to other player for future turns.
+            piece = Piece.reveal(piece)
+
+            {:ok, place_piece(board_with_removed_pieces, piece, coord)}
+
+          [] ->
+            # equivalent ranks, so both pieces are removed
+            {:ok, board_with_removed_pieces}
+        end
 
       other ->
         # either {:ok, :win} or an {:error, reason}
