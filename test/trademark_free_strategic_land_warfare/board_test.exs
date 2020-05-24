@@ -86,14 +86,9 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
       {:ok, new_board} = Board.init_pieces(Board.new(), placements, 2)
       rows = new_board.rows
 
-      assert get_in(rows, [Access.at(4), Access.at(2)]) == :lake
-      assert get_in(rows, [Access.at(4), Access.at(3)]) == :lake
-      assert get_in(rows, [Access.at(4), Access.at(6)]) == :lake
-      assert get_in(rows, [Access.at(4), Access.at(7)]) == :lake
-      assert get_in(rows, [Access.at(5), Access.at(2)]) == :lake
-      assert get_in(rows, [Access.at(5), Access.at(3)]) == :lake
-      assert get_in(rows, [Access.at(5), Access.at(6)]) == :lake
-      assert get_in(rows, [Access.at(5), Access.at(7)]) == :lake
+      for {x, y} <- [{2, 4}, {3, 4}, {6, 4}, {7, 4}, {2, 5}, {3, 5}, {6, 5}, {7, 5}] do
+        assert get_in(rows, [Access.at(y), Access.at(x)]) == :lake
+      end
     end
 
     test "can't pass incorrect piece counts" do
