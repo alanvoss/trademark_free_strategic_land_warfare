@@ -58,22 +58,22 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
          rows_of_pieces <- create_pieces(pieces, player) do
       populate_board(board, rows_of_pieces, player)
     else
-      _ -> {:error, "piece configuration is incorrect"}
+      x -> {:error, "piece configuration is incorrect: #{inspect(x)}"}
     end
   end
 
   defp populate_board(%__MODULE__{} = board, rows_of_pieces, player) do
-    new_board =
-      Enum.reduce(rows_of_pieces, {3, board}, fn row, {y, row_acc} ->
-        {
-          y - 1,
+    {_, new_board} =
+      Enum.reduce(rows_of_pieces, {6, board}, fn row, {y, row_acc} ->
+        {_, new_row} =
           Enum.reduce(row, {0, row_acc}, fn piece, {x, column_acc} ->
             {
               x + 1,
               place_piece(column_acc, piece, {x, y}, player)
             }
           end)
-        }
+
+        {y + 1, new_row}
       end)
 
     {:ok, new_board}
@@ -131,18 +131,32 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     |> put_in([Access.key(:lookup), piece.uuid], {translated_x, translated_y})
   end
 
+  def maybe_flip(%__MODULE__{} = board, 2) do
+    new_lookup =
+      board.uuid
+      |> Enum.map(fn {uuid, coord} -> {uuid, translate_coord(coord, 2)} end)
+      |> Enum.into(%{})
+
+    maybe_flip(%__MODULE__{board | lookup: new_lookup}, 2)
+  end
+
+  def maybe_flip(%__MODULE__{} = board, player) do
+    %__MODULE__{board | rows: maybe_flip(board.rows, player)}
+  end
+
   def maybe_flip(rows, 1), do: rows
 
   def maybe_flip(rows, 2) do
     rows
     |> Enum.reverse()
-    |> Enum.reduce([], &Enum.reverse/1)
+    |> Enum.map(&Enum.reverse/1)
   end
 
   defp validate_piece_counts(pieces) do
     @piece_name_counts ==
-      Enum.reduce(
-        pieces,
+      pieces
+      |> List.flatten()
+      |> Enum.reduce(
         %{},
         fn name, acc -> Map.update(acc, name, 1, &(&1 + 1)) end
       )
@@ -268,4 +282,15 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     do: {:ok, coord}
 
   def check_coordinate_within_bounds(_), do: {:error, "coordinate out of bounds"}
+
+  def mask_board(board, player) do
+    new_rows =
+      Enum.map(board.rows, fn row ->
+        Enum.map(row, fn column ->
+          Piece.maybe_mask(column, player)
+        end)
+      end)
+
+    %__MODULE__{board | rows: new_rows}
+  end
 end
