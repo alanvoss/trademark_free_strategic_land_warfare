@@ -62,6 +62,13 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     {board, piece}
   end
 
+  def place_only(specs) do
+    Enum.reduce(specs, {Board.new(), []}, fn {coord, piece}, {board, pieces} ->
+      {:ok, new_board} = Board.place_piece(board, piece, coord, 1)
+      {new_board, pieces ++ [piece]}
+    end)
+  end
+
   describe "piece_name_counts" do
     test "returns a hash with correct piece counts" do
       counts = Board.piece_name_counts()
@@ -383,41 +390,34 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
 
     test "a scout errors if it hits its own piece" do
-      scout = Piece.new(:scout, 2)
-      marshall = Piece.new(:marshall, 2)
-
-      {:ok, board_with_scout_piece} = Board.place_piece(Board.new(), scout, {5, 6}, 2)
-
-      {:ok, board_with_marshall_piece} =
-        Board.place_piece(board_with_scout_piece, marshall, {5, 9}, 2)
+      {board, [scout, _]} =
+        place_only([
+          {{4, 3}, Piece.new(:scout, 2)},
+          {{4, 0}, Piece.new(:marshall, 2)}
+        ])
 
       assert {:error, "you can't run into your own team's piece"} =
-               Board.move(board_with_marshall_piece, 2, scout.uuid, :backward, 6)
+               Board.move(board, 2, scout.uuid, :backward, 6)
     end
 
     test "a scout errors if it hits a barrier" do
-      scout = Piece.new(:scout, 1)
-      {:ok, board} = Board.place_piece(Board.new(), scout, {4, 3}, 1)
+      {board, [scout]} =
+        place_only([
+          {{4, 3}, Piece.new(:scout, 1)}
+        ])
 
       assert {:error, "can't place a piece out of bounds"} =
                Board.move(board, 1, scout.uuid, :right, 6)
     end
 
     test "reveals either the attacker and defender if an attack happens and a piece remains" do
-      bomb = Piece.new(:bomb, 1)
-      assert bomb.visible == false
+      {board, [bomb, captain]} =
+        place_only([
+          {{7, 2}, Piece.new(:bomb, 1)},
+          {{8, 2}, Piece.new(:captain, 2)}
+        ])
 
-      captain = Piece.new(:captain, 2)
-      assert captain.visible == false
-
-      # these pieces are next to each other, but the coordinates were placed as different players
-      {:ok, board_with_bomb_piece} = Board.place_piece(Board.new(), bomb, {7, 2}, 1)
-
-      {:ok, board_with_captain_piece} =
-        Board.place_piece(board_with_bomb_piece, captain, {1, 7}, 2)
-
-      assert {:ok, attack_finished_board} =
-               Board.move(board_with_captain_piece, 2, captain.uuid, :right, 1)
+      assert {:ok, attack_finished_board} = Board.move(board, 2, captain.uuid, :right, 1)
 
       assert nil == Board.lookup_by_uuid(attack_finished_board, captain.uuid, 2)
 
@@ -426,38 +426,40 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
 
     test "returns a win if piece moves onto opponent flag" do
-      flag = Piece.new(:flag, 1)
-      assert flag.visible == false
+      {board, [_, major]} =
+        place_only([
+          {{2, 9}, Piece.new(:flag, 1)},
+          {{2, 8}, Piece.new(:major, 2)}
+        ])
 
-      major = Piece.new(:major, 2)
-      assert major.visible == false
-
-      # these pieces are next to each other, but the coordinates were placed as different players
-      {:ok, board_with_flag_piece} = Board.place_piece(Board.new(), flag, {2, 9}, 1)
-      {:ok, board_with_major_piece} = Board.place_piece(board_with_flag_piece, major, {7, 1}, 2)
-      assert {:ok, :win} = Board.move(board_with_major_piece, 2, major.uuid, :forward, 1)
+      assert {:ok, :win} = Board.move(board, 2, major.uuid, :forward, 1)
     end
 
     test "errors when piece attacks piece of the same player" do
-      spy = Piece.new(:spy, 1)
-      colonel = Piece.new(:colonel, 1)
-
-      {:ok, board_with_spy_piece} = Board.place_piece(Board.new(), spy, {3, 9}, 1)
-
-      {:ok, board_with_colonel_piece} =
-        Board.place_piece(board_with_spy_piece, colonel, {4, 9}, 1)
+      {board, [_, colonel]} =
+        place_only([
+          {{3, 9}, Piece.new(:spy, 1)},
+          {{4, 9}, Piece.new(:colonel, 1)}
+        ])
 
       assert {:error, "you can't run into your own team's piece"} =
-               Board.move(board_with_colonel_piece, 1, colonel.uuid, :left, 1)
+               Board.move(board, 1, colonel.uuid, :left, 1)
     end
 
-    # test "removes the attacking piece if loses battle", %{board: board} do
+    # test "removes the attacking piece if loses battle" do
+    #  general = Piece.new(:general, 2)
+    #  major = Piece.new(:colonel, 2)
+
+    #  {:ok, board_with_spy_piece} = Board.place_piece(Board.new(), spy, {3, 9}, 1)
+
+    #  {:ok, board_with_colonel_piece} =
+    #    Board.place_piece(board_with_spy_piece, colonel, {4, 9}, 1)
+
+    #  assert {:error, "you can't run into your own team's piece"} =
+    #           Board.move(board_with_colonel_piece, 1, colonel.uuid, :left, 1)
     # end
 
     # test "removes the defending piece if loses battle", %{board: board} do
-    # end
-
-    # test "can't attack own piece (when moving only 1 square)" do
     # end
 
     # test "removes both the attacking and defending piece if loses battle", %{board: board} do
