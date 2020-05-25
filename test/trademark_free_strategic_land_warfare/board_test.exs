@@ -1,7 +1,7 @@
 defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
   use ExUnit.Case
 
-  alias TrademarkFreeStrategicLandWarfare.Board
+  alias TrademarkFreeStrategicLandWarfare.{Board, Piece}
 
   def shuffled_pieces() do
     Board.piece_name_counts()
@@ -181,7 +181,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
 
       pieces_to_remove =
         board.rows
-        |> Enum.at(7)
+        |> Enum.at(Enum.random(6..9))
         |> Enum.take(2)
 
       new_board = Board.remove_pieces(board, pieces_to_remove)
@@ -199,11 +199,33 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
   end
 
-  # describe "remove_piece" do
-  #  test "
-  #    placements = good_piece_setup()
-  #    {:ok, %Board{} = board} = Board.init_pieces(Board.new(), placements, 2)
-  # end
+  describe "remove_piece" do
+    test "removes a piece, if it exists" do
+      {:ok, %Board{} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 1)
+
+      piece_to_remove =
+        board.rows
+        |> Enum.at(Enum.random(6..9))
+        |> Enum.at(Enum.random(6..9))
+
+      new_board = Board.remove_piece(board, piece_to_remove)
+
+      all_uuids =
+        new_board.rows
+        |> List.flatten()
+        |> Enum.filter(&is_struct(&1))
+        |> Enum.map(& &1.uuid)
+
+      assert nil == Board.lookup_by_uuid(new_board, piece_to_remove.uuid)
+      assert nil == Enum.find(all_uuids, &(&1 == piece_to_remove.uuid))
+    end
+
+    test "doesn't fail if a bogus uuid is passed" do
+      {:ok, %Board{} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 1)
+      new_board = Board.remove_piece(board, Piece.new(:marshall, 1))
+      assert board == new_board
+    end
+  end
 
   # mask board
   #   player 1
