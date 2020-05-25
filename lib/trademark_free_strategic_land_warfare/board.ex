@@ -53,32 +53,13 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
         pieces,
         player
       ) do
-    with true <- validate_piece_counts(pieces),
-         true <- validate_row_dimensions(pieces),
+    with :ok <- validate_piece_counts(pieces),
+         :ok <- validate_row_dimensions(pieces),
          rows_of_pieces <- create_pieces(pieces, player) do
       populate_board(board, rows_of_pieces, player)
     else
-      x -> {:error, "piece configuration is incorrect: #{inspect(x)}"}
+      {:error, x} -> {:error, "piece configuration is incorrect: #{inspect(x)}"}
     end
-  end
-
-  defp populate_board(%__MODULE__{} = board, rows_of_pieces, player) do
-    {_, new_board} =
-      Enum.reduce(rows_of_pieces, {6, board}, fn row, {y, row_acc} ->
-        {_, new_row} =
-          Enum.reduce(row, {0, row_acc}, fn piece, {x, column_acc} ->
-            {:ok, row_board} = place_piece(column_acc, piece, {x, y}, player)
-
-            {
-              x + 1,
-              row_board
-            }
-          end)
-
-        {y + 1, new_row}
-      end)
-
-    {:ok, new_board}
   end
 
   def translate_coord(coord, 1 = _player), do: coord
@@ -156,28 +137,6 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     |> Enum.map(&Enum.reverse/1)
   end
 
-  defp validate_piece_counts(pieces) do
-    @piece_name_counts ==
-      pieces
-      |> List.flatten()
-      |> Enum.reduce(
-        %{},
-        fn name, acc -> Map.update(acc, name, 1, &(&1 + 1)) end
-      )
-  end
-
-  defp validate_row_dimensions(pieces) do
-    length(pieces) == 4 and [10, 10, 10, 10] == Enum.map(pieces, &length(&1))
-  end
-
-  defp create_pieces(pieces, player) do
-    for row <- pieces do
-      for piece <- row do
-        Piece.new(piece, player)
-      end
-    end
-  end
-
   def move(board, player, uuid, direction, count) do
     case lookup_by_uuid(board, uuid, player) do
       nil ->
@@ -188,6 +147,90 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
 
       _ ->
         {:error, "you cannot move the other player's piece"}
+    end
+  end
+
+  def maybe_invert_player_direction(direction, 1), do: direction
+  def maybe_invert_player_direction(:forward, 2), do: :backward
+  def maybe_invert_player_direction(:backward, 2), do: :forward
+  def maybe_invert_player_direction(:left, 2), do: :right
+  def maybe_invert_player_direction(:right, 2), do: :left
+
+  def new_coordinate({x, y}, direction) do
+    case direction do
+      :forward -> {x, y - 1}
+      :backward -> {x, y + 1}
+      :left -> {x - 1, y}
+      :right -> {x + 1, y}
+    end
+    |> check_coordinate_within_bounds()
+  end
+
+  def check_coordinate_within_bounds({x, y} = coord) when x >= 0 and x < 10 and y >= 0 and y < 10,
+    do: {:ok, coord}
+
+  def check_coordinate_within_bounds(_), do: {:error, "coordinate out of bounds"}
+
+  def mask_board(board, player) do
+    new_rows =
+      Enum.map(board.rows, fn row ->
+        Enum.map(row, fn column ->
+          Piece.maybe_mask(column, player)
+        end)
+      end)
+
+    %__MODULE__{board | rows: new_rows}
+  end
+
+  defp populate_board(%__MODULE__{} = board, rows_of_pieces, player) do
+    {_, new_board} =
+      Enum.reduce(rows_of_pieces, {6, board}, fn row, {y, row_acc} ->
+        {_, new_row} =
+          Enum.reduce(row, {0, row_acc}, fn piece, {x, column_acc} ->
+            {:ok, row_board} = place_piece(column_acc, piece, {x, y}, player)
+
+            {
+              x + 1,
+              row_board
+            }
+          end)
+
+        {y + 1, new_row}
+      end)
+
+    {:ok, new_board}
+  end
+
+  defp validate_piece_counts(pieces) do
+    player_piece_counts =
+      pieces
+      |> List.flatten()
+      |> Enum.reduce(
+        %{},
+        fn name, acc -> Map.update(acc, name, 1, &(&1 + 1)) end
+      )
+
+    if @piece_name_counts == player_piece_counts do
+      :ok
+    else
+      {:error,
+       "invalid piece counts.  see Board.piece_name_counts() for individual named piece counts, and the total must add to 40"}
+    end
+  end
+
+  defp validate_row_dimensions(pieces) do
+    if length(pieces) == 4 and [10, 10, 10, 10] == Enum.map(pieces, &length(&1)) do
+      :ok
+    else
+      {:error, "invalid row dimensions.  must give a list of 4 with 10 names each"}
+    end
+  end
+
+  defp create_pieces(pieces, player) do
+    for row <- pieces do
+      for piece <- row do
+        Piece.new(piece, player)
+      end
     end
   end
 
@@ -218,7 +261,6 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
   end
 
   # have to update the lookups after moving
-
   defp advance(board, piece, {x, y}, direction, 1) do
     with {:ok, new_coord} <- new_coordinate({x, y}, direction) do
       case lookup_by_coord(board, new_coord) do
@@ -264,37 +306,5 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
         # either {:ok, :win} or an {:error, reason}
         other
     end
-  end
-
-  def maybe_invert_player_direction(direction, 1), do: direction
-  def maybe_invert_player_direction(:forward, 2), do: :backward
-  def maybe_invert_player_direction(:backward, 2), do: :forward
-  def maybe_invert_player_direction(:left, 2), do: :right
-  def maybe_invert_player_direction(:right, 2), do: :left
-
-  def new_coordinate({x, y}, direction) do
-    case direction do
-      :forward -> {x, y - 1}
-      :backward -> {x, y + 1}
-      :left -> {x - 1, y}
-      :right -> {x + 1, y}
-    end
-    |> check_coordinate_within_bounds()
-  end
-
-  def check_coordinate_within_bounds({x, y} = coord) when x >= 0 and x < 10 and y >= 0 and y < 10,
-    do: {:ok, coord}
-
-  def check_coordinate_within_bounds(_), do: {:error, "coordinate out of bounds"}
-
-  def mask_board(board, player) do
-    new_rows =
-      Enum.map(board.rows, fn row ->
-        Enum.map(row, fn column ->
-          Piece.maybe_mask(column, player)
-        end)
-      end)
-
-    %__MODULE__{board | rows: new_rows}
   end
 end
