@@ -104,16 +104,64 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
 
       assert {:error, _} = Board.init_pieces(Board.new(), placements, 2)
     end
-
-    # mask board
-    #   player 1
-    #   player 2
-    # move
-    #   all 4 directions
-    #   not into a lake
-    #   not outside boundary
-    #   attacks
   end
+
+  describe "translate_coord" do
+    test "for player 1, no translation for coord" do
+      for coord <- [{4, 2}, {5, 8}, {9, 0}] do
+        assert ^coord = Board.translate_coord(coord, 1)
+      end
+    end
+
+    test "for player 2, translation to player perspective for coord" do
+      assert {2, 7} = Board.translate_coord({7, 2}, 2)
+      assert {4, 8} = Board.translate_coord({5, 1}, 2)
+      assert {9, 1} = Board.translate_coord({0, 8}, 2)
+    end
+  end
+
+  describe "lookup_by_uuid" do
+    test "for player 1, no translation" do
+      placements = good_piece_setup()
+      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), placements, 1)
+
+      for {row, y} <- rows |> Enum.drop(6) |> Enum.zip(6..9) do
+        for {piece, x} <- Enum.zip(row, 0..9) do
+          assert {{^x, ^y}, ^piece} = Board.lookup_by_uuid(board, piece.uuid, 1)
+        end
+      end
+    end
+
+    test "for player 2, perspective for lookup is translated" do
+      placements = good_piece_setup()
+      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), placements, 2)
+
+      for {row, y} <- rows |> Enum.take(4) |> Enum.zip(0..3) do
+        for {piece, x} <- Enum.zip(row, 0..9) do
+          translated_x = 9 - x
+          translated_y = 9 - y
+
+          assert {{^translated_x, ^translated_y}, ^piece} =
+                   Board.lookup_by_uuid(board, piece.uuid, 2)
+        end
+      end
+    end
+
+    test "returns nil when no piece is present with that name" do
+      placements = good_piece_setup()
+      {:ok, %Board{} = board} = Board.init_pieces(Board.new(), placements, 1)
+      assert nil == Board.lookup_by_uuid(board, "my-bogus-id", 1)
+    end
+  end
+
+  # mask board
+  #   player 1
+  #   player 2
+  # move
+  #   all 4 directions
+  #   not into a lake
+  #   not outside boundary
+  #   attacks
 
   # describe "new" do
 
