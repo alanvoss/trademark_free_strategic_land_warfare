@@ -76,14 +76,12 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
 
     test "returns a board with 10 rows" do
-      placements = good_piece_setup()
-      {:ok, new_board} = Board.init_pieces(Board.new(), placements, 2)
+      {:ok, new_board} = Board.init_pieces(Board.new(), good_piece_setup(), 2)
       assert length(new_board.rows) == 10
     end
 
     test "has lake pieces in the correct places" do
-      placements = good_piece_setup()
-      {:ok, new_board} = Board.init_pieces(Board.new(), placements, 2)
+      {:ok, new_board} = Board.init_pieces(Board.new(), good_piece_setup(), 2)
       rows = new_board.rows
 
       for {x, y} <- [{2, 4}, {3, 4}, {6, 4}, {7, 4}, {2, 5}, {3, 5}, {6, 5}, {7, 5}] do
@@ -92,8 +90,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
 
     test "can't pass incorrect piece counts" do
-      placements = bad_piece_setup()
-      assert {:error, _} = Board.init_pieces(Board.new(), placements, 2)
+      assert {:error, _} = Board.init_pieces(Board.new(), bad_piece_setup(), 2)
     end
 
     test "can't pass something other than 4 rows of 10" do
@@ -122,8 +119,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
 
   describe "lookup_by_uuid" do
     test "for player 1, no translation" do
-      placements = good_piece_setup()
-      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), placements, 1)
+      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 1)
 
       for {row, y} <- rows |> Enum.drop(6) |> Enum.zip(6..9) do
         for {piece, x} <- Enum.zip(row, 0..9) do
@@ -133,8 +129,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
 
     test "for player 2, perspective for lookup is translated" do
-      placements = good_piece_setup()
-      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), placements, 2)
+      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 2)
 
       for {row, y} <- rows |> Enum.take(4) |> Enum.zip(0..3) do
         for {piece, x} <- Enum.zip(row, 0..9) do
@@ -148,16 +143,14 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
 
     test "returns nil when no piece is present with that name" do
-      placements = good_piece_setup()
-      {:ok, %Board{} = board} = Board.init_pieces(Board.new(), placements, 1)
+      {:ok, %Board{} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 1)
       assert nil == Board.lookup_by_uuid(board, "my-bogus-id", 1)
     end
   end
 
   describe "lookup_by_coord" do
     test "for player 1, no translation" do
-      placements = good_piece_setup()
-      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), placements, 1)
+      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 1)
 
       for {row, y} <- rows |> Enum.drop(6) |> Enum.zip(6..9) do
         for {piece, x} <- Enum.zip(row, 0..9) do
@@ -167,8 +160,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
 
     test "for player 2, perspective for lookup is translated" do
-      placements = good_piece_setup()
-      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), placements, 2)
+      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 2)
 
       for {row, y} <- rows |> Enum.take(4) |> Enum.zip(0..3) do
         for {piece, x} <- Enum.zip(row, 0..9) do
@@ -178,11 +170,40 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
 
     test "when coordinate is out of bounds, doesn't error" do
-      placements = good_piece_setup()
-      {:ok, %Board{} = board} = Board.init_pieces(Board.new(), placements, 2)
+      {:ok, %Board{} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 2)
       assert nil == Board.lookup_by_coord(board, {10, 0}, 1)
     end
   end
+
+  describe "remove_pieces" do
+    test "removes multiple pieces" do
+      {:ok, %Board{} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 1)
+
+      pieces_to_remove =
+        board.rows
+        |> Enum.at(7)
+        |> Enum.take(2)
+
+      new_board = Board.remove_pieces(board, pieces_to_remove)
+
+      all_uuids =
+        new_board.rows
+        |> List.flatten()
+        |> Enum.filter(&is_struct(&1))
+        |> Enum.map(& &1.uuid)
+
+      for piece <- pieces_to_remove do
+        assert nil == Board.lookup_by_uuid(new_board, piece.uuid)
+        assert nil == Enum.find(all_uuids, &(&1 == piece.uuid))
+      end
+    end
+  end
+
+  # describe "remove_piece" do
+  #  test "
+  #    placements = good_piece_setup()
+  #    {:ok, %Board{} = board} = Board.init_pieces(Board.new(), placements, 2)
+  # end
 
   # mask board
   #   player 1
