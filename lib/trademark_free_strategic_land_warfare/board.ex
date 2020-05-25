@@ -67,9 +67,11 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
       Enum.reduce(rows_of_pieces, {6, board}, fn row, {y, row_acc} ->
         {_, new_row} =
           Enum.reduce(row, {0, row_acc}, fn piece, {x, column_acc} ->
+            {:ok, row_board} = place_piece(column_acc, piece, {x, y}, player)
+
             {
               x + 1,
-              place_piece(column_acc, piece, {x, y}, player)
+              row_board
             }
           end)
 
@@ -122,13 +124,24 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     end
   end
 
-  def place_piece(%__MODULE__{} = board, %Piece{} = piece, {x, y}, player \\ 1) do
+  def place_piece(board, piece, coord, player \\ 1)
+
+  def place_piece(_, %Piece{}, {x, y}, _) when x in [2, 3, 6, 7] and y in [4, 5] do
+    {:error, "can't place a piece where a lake is"}
+  end
+
+  def place_piece(_, %Piece{}, {x, y}, _) when x < 0 or x > 9 or y < 0 or y > 9 do
+    {:error, "can't place a piece out of bounds"}
+  end
+
+  def place_piece(%__MODULE__{} = board, %Piece{} = piece, {x, y}, player) do
     {translated_x, translated_y} = translate_coord({x, y}, player)
 
-    board
-    |> remove_piece(piece)
-    |> put_in([Access.key(:rows), Access.at(translated_y), Access.at(translated_x)], piece)
-    |> put_in([Access.key(:lookup), piece.uuid], {translated_x, translated_y})
+    {:ok,
+     board
+     |> remove_piece(piece)
+     |> put_in([Access.key(:rows), Access.at(translated_y), Access.at(translated_x)], piece)
+     |> put_in([Access.key(:lookup), piece.uuid], {translated_x, translated_y})}
   end
 
   def maybe_flip(%__MODULE__{} = board, 2) do

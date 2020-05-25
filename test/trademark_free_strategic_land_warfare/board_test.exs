@@ -206,7 +206,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
       piece_to_remove =
         board.rows
         |> Enum.at(Enum.random(6..9))
-        |> Enum.at(Enum.random(6..9))
+        |> Enum.at(Enum.random(0..9))
 
       new_board = Board.remove_piece(board, piece_to_remove)
 
@@ -224,6 +224,60 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
       {:ok, %Board{} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 1)
       new_board = Board.remove_piece(board, Piece.new(:marshall, 1))
       assert board == new_board
+    end
+  end
+
+  describe "place_piece" do
+    test "place a piece on the board" do
+      board = Board.new()
+      piece = Piece.new(:spy, 1)
+      coord = {1, 8}
+      {:ok, new_board} = Board.place_piece(board, piece, coord)
+
+      assert piece == Board.lookup_by_coord(new_board, coord)
+      assert {coord, piece} == Board.lookup_by_uuid(new_board, piece.uuid)
+    end
+
+    test "place a piece on the board for player 2 translates coordinate" do
+      board = Board.new()
+      piece = Piece.new(:flag, 2)
+      coord = {3, 1}
+      {:ok, new_board} = Board.place_piece(board, piece, coord, 2)
+
+      assert piece == Board.lookup_by_coord(new_board, {6, 8})
+      assert {{6, 8}, piece} == Board.lookup_by_uuid(new_board, piece.uuid)
+    end
+
+    test "place a piece on the board removes the piece from previous location" do
+      board = Board.new()
+      piece = Piece.new(:spy, 2)
+      initial_coord = {2, 2}
+      {:ok, initial_board} = Board.place_piece(board, piece, initial_coord, 2)
+
+      new_coord = {2, 3}
+      {:ok, new_board} = Board.place_piece(initial_board, piece, new_coord, 2)
+
+      assert nil == Board.lookup_by_coord(new_board, {7, 7})
+      assert piece == Board.lookup_by_coord(new_board, {7, 6})
+      assert {{7, 6}, piece} == Board.lookup_by_uuid(new_board, piece.uuid)
+    end
+
+    test "won't place a piece where a lake is" do
+      board = Board.new()
+      piece = Piece.new(:flag, 1)
+      initial_coord = {3, 5}
+
+      assert {:error, "can't place a piece where a lake is"} =
+               Board.place_piece(board, piece, initial_coord, 1)
+    end
+
+    test "won't place a piece out of bounds" do
+      board = Board.new()
+      piece = Piece.new(:scout, 1)
+      initial_coord = {11, 6}
+
+      assert {:error, "can't place a piece out of bounds"} =
+               Board.place_piece(board, piece, initial_coord, 1)
     end
   end
 
