@@ -176,6 +176,12 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
         end
       end
     end
+
+    test "when coordinate is out of bounds, doesn't error" do
+      placements = good_piece_setup()
+      {:ok, %Board{} = board} = Board.init_pieces(Board.new(), placements, 2)
+      assert nil == Board.lookup_by_coord(board, {10, 0}, 1)
+    end
   end
 
   # mask board
