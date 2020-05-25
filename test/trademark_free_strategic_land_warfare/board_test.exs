@@ -281,6 +281,23 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
   end
 
+  describe "maybe_flip" do
+    test "no action when player 1" do
+      {:ok, %Board{rows: rows}} = Board.init_pieces(Board.new(), good_piece_setup(), 1)
+      assert Board.maybe_flip(rows, 1) == rows
+    end
+
+    test "flips perspective when player 2" do
+      {:ok, %Board{rows: rows}} = Board.init_pieces(Board.new(), good_piece_setup(), 2)
+      flipped_rows = Board.maybe_flip(rows, 2)
+
+      assert rows != flipped_rows
+
+      assert get_in(rows, [Access.at(1), Access.at(6)]) ==
+               get_in(flipped_rows, [Access.at(8), Access.at(3)])
+    end
+  end
+
   # mask board
   #   player 1
   #   player 2

@@ -144,17 +144,8 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
      |> put_in([Access.key(:lookup), piece.uuid], {translated_x, translated_y})}
   end
 
-  def maybe_flip(%__MODULE__{} = board, 2) do
-    new_lookup =
-      board.uuid
-      |> Enum.map(fn {uuid, coord} -> {uuid, translate_coord(coord, 2)} end)
-      |> Enum.into(%{})
-
-    maybe_flip(%__MODULE__{board | lookup: new_lookup}, 2)
-  end
-
-  def maybe_flip(%__MODULE__{} = board, player) do
-    %__MODULE__{board | rows: maybe_flip(board.rows, player)}
+  def maybe_flip(%__MODULE__{}, _) do
+    raise "not implemented for boards, only board rows"
   end
 
   def maybe_flip(rows, 1), do: rows
