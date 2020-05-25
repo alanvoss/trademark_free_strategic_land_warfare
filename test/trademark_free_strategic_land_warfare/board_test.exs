@@ -154,6 +154,30 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
   end
 
+  describe "lookup_by_coord" do
+    test "for player 1, no translation" do
+      placements = good_piece_setup()
+      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), placements, 1)
+
+      for {row, y} <- rows |> Enum.drop(6) |> Enum.zip(6..9) do
+        for {piece, x} <- Enum.zip(row, 0..9) do
+          assert ^piece = Board.lookup_by_coord(board, {x, y}, 1)
+        end
+      end
+    end
+
+    test "for player 2, perspective for lookup is translated" do
+      placements = good_piece_setup()
+      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), placements, 2)
+
+      for {row, y} <- rows |> Enum.take(4) |> Enum.zip(0..3) do
+        for {piece, x} <- Enum.zip(row, 0..9) do
+          assert ^piece = Board.lookup_by_coord(board, {9 - x, 9 - y}, 2)
+        end
+      end
+    end
+  end
+
   # mask board
   #   player 1
   #   player 2
