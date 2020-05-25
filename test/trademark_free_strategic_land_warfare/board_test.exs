@@ -446,37 +446,56 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
                Board.move(board, 1, colonel.uuid, :left, 1)
     end
 
-    # test "removes the attacking piece if loses battle" do
-    #  general = Piece.new(:general, 2)
-    #  major = Piece.new(:colonel, 2)
+    test "removes the attacking piece if loses battle" do
+      {board, [general, major]} =
+        place_only([
+          {{3, 9}, Piece.new(:general, 1)},
+          {{4, 9}, Piece.new(:major, 2)}
+        ])
 
-    #  {:ok, board_with_spy_piece} = Board.place_piece(Board.new(), spy, {3, 9}, 1)
+      assert {:ok, attack_finished_board} = Board.move(board, 2, major.uuid, :right, 1)
 
-    #  {:ok, board_with_colonel_piece} =
-    #    Board.place_piece(board_with_spy_piece, colonel, {4, 9}, 1)
+      assert {{3, 9}, %Piece{general | visible: true}} ==
+               Board.lookup_by_uuid(attack_finished_board, general.uuid, 1)
+    end
 
-    #  assert {:error, "you can't run into your own team's piece"} =
-    #           Board.move(board_with_colonel_piece, 1, colonel.uuid, :left, 1)
-    # end
+    test "removes the defending piece if loses battle" do
+      {board, [_, miner]} =
+        place_only([
+          {{3, 9}, Piece.new(:bomb, 1)},
+          {{3, 8}, Piece.new(:miner, 2)}
+        ])
 
-    # test "removes the defending piece if loses battle", %{board: board} do
-    # end
+      assert {:ok, attack_finished_board} = Board.move(board, 2, miner.uuid, :forward, 1)
 
-    # test "removes both the attacking and defending piece if loses battle", %{board: board} do
-    # end
+      assert {{3, 9}, %Piece{miner | visible: true}} ==
+               Board.lookup_by_uuid(attack_finished_board, miner.uuid, 1)
+    end
 
-    # test "if any piece other than a scout attempts to go more than 1 space"
-    # end
+    test "removes both the attacking and defending piece if ties battle" do
+      {board, [captain1, captain2]} =
+        place_only([
+          {{9, 0}, Piece.new(:captain, 1)},
+          {{9, 1}, Piece.new(:captain, 2)}
+        ])
+
+      assert {:ok, attack_finished_board} = Board.move(board, 1, captain1.uuid, :backward, 1)
+
+      assert nil == Board.lookup_by_uuid(attack_finished_board, captain1.uuid, 1)
+      assert nil == Board.lookup_by_uuid(attack_finished_board, captain2.uuid, 1)
+    end
+
+    test "errors if any piece other than a scout attempts to go more than 1 space" do
+      {board, piece} = place_piece_at(:miner, 1, 1)
+
+      assert {:error, "all pieces except the scout can only advance 1"} ==
+               Board.move(board, 1, piece.uuid, :forward, 2)
+    end
   end
 
   # mask board
   #   player 1
   #   player 2
-  # move
-  #   all 4 directions
-  #   not into a lake
-  #   not outside boundary
-  #   attacks
 
   # describe "new" do
 
