@@ -137,8 +137,8 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     |> Enum.map(&Enum.reverse/1)
   end
 
-  def move(board, player, uuid, direction, count) do
-    case lookup_by_uuid(board, uuid, player) do
+  def move(board, player \\ 1, uuid, direction, count) do
+    case lookup_by_uuid(board, uuid) do
       nil ->
         {:error, "no piece with that name"}
 
@@ -163,13 +163,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
       :left -> {x - 1, y}
       :right -> {x + 1, y}
     end
-    |> check_coordinate_within_bounds()
   end
-
-  def check_coordinate_within_bounds({x, y} = coord) when x >= 0 and x < 10 and y >= 0 and y < 10,
-    do: {:ok, coord}
-
-  def check_coordinate_within_bounds(_), do: {:error, "coordinate out of bounds"}
 
   def mask_board(board, player) do
     new_rows =
@@ -244,7 +238,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
 
   # advance until you hit something in case of scout
   defp advance(board, %Piece{name: :scout} = piece, {x, y}, direction, count) when count > 1 do
-    with {:ok, new_coord} <- new_coordinate({x, y}, direction) do
+    with new_coord <- new_coordinate({x, y}, direction) do
       case lookup_by_coord(board, new_coord) do
         nil ->
           # we are advancing by at least two, so other player now has knowledge that
@@ -262,16 +256,13 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
 
   # have to update the lookups after moving
   defp advance(board, piece, {x, y}, direction, 1) do
-    with {:ok, new_coord} <- new_coordinate({x, y}, direction) do
+    with new_coord <- new_coordinate({x, y}, direction) do
       case lookup_by_coord(board, new_coord) do
-        nil ->
-          place_piece(board, piece, new_coord)
-
-        :lake ->
-          {:error, "cannot move into lake"}
-
         %Piece{} = defender ->
           attack(board, piece, defender, new_coord)
+
+        _ ->
+          place_piece(board, piece, new_coord)
       end
     end
   end

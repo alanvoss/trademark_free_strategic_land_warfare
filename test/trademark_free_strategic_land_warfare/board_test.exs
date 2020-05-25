@@ -41,6 +41,14 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end)
   end
 
+  def setup_two_players() do
+    Enum.reduce(1..2, Board.new(), fn player, board_acc ->
+      placements = good_piece_setup()
+      {:ok, new_board} = Board.init_pieces(board_acc, placements, player)
+      new_board
+    end)
+  end
+
   describe "piece_name_counts" do
     test "returns a hash with correct piece counts" do
       counts = Board.piece_name_counts()
@@ -296,6 +304,131 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
       assert get_in(rows, [Access.at(1), Access.at(6)]) ==
                get_in(flipped_rows, [Access.at(8), Access.at(3)])
     end
+  end
+
+  describe "move" do
+    test "successfully moves to an empty space" do
+      placements =
+        shuffled_pieces()
+        |> Kernel.--([:marshall])
+        |> List.insert_at(0, :marshall)
+        |> Enum.chunk_every(10)
+
+      {:ok, board} = Board.init_pieces(Board.new(), placements, 1)
+      piece = Board.lookup_by_coord(board, {0, 6})
+
+      {:ok, new_board} = Board.move(board, 1, piece.uuid, :forward, 1)
+      assert {{0, 5}, piece} == Board.lookup_by_uuid(new_board, piece.uuid, 1)
+    end
+
+    test "errors when trying to move to a lake" do
+      placements =
+        shuffled_pieces()
+        |> Kernel.--([:miner])
+        |> List.insert_at(7, :miner)
+        |> Enum.chunk_every(10)
+
+      {:ok, board} = Board.init_pieces(Board.new(), placements, 2)
+      piece = Board.lookup_by_coord(board, {7, 6}, 2)
+
+      assert {:error, "can't place a piece where a lake is"} ==
+               Board.move(board, 2, piece.uuid, :forward, 1)
+    end
+
+    test "errors when trying to move outside of bounds" do
+      placements =
+        shuffled_pieces()
+        |> Kernel.--([:spy])
+        |> List.insert_at(0, :spy)
+        |> Enum.chunk_every(10)
+
+      {:ok, board} = Board.init_pieces(Board.new(), placements, 2)
+      piece = Board.lookup_by_coord(board, {0, 6}, 2)
+
+      assert {:error, "can't place a piece out of bounds"} ==
+               Board.move(board, 2, piece.uuid, :left, 1)
+    end
+
+    test "returns an error if other player's piece is attempted to be moved" do
+      placements =
+        shuffled_pieces()
+        |> Kernel.--([:major])
+        |> List.insert_at(4, :major)
+        |> Enum.chunk_every(10)
+
+      {:ok, board} = Board.init_pieces(Board.new(), placements, 1)
+      piece = Board.lookup_by_coord(board, {4, 6}, 1)
+
+      assert {:error, "you cannot move the other player's piece"} ==
+               Board.move(board, 2, piece.uuid, :forward, 1)
+    end
+
+    test "disallows moving a piece that, doesn't exist on the board" do
+      board = setup_two_players()
+
+      assert {:error, "no piece with that name"} ==
+               Board.move(board, 2, "my-bogus-uuid-here", :forward, 2)
+    end
+
+    test "disallows moving a bomb" do
+      placements =
+        shuffled_pieces()
+        |> Kernel.--([:bomb])
+        |> List.insert_at(9, :bomb)
+        |> Enum.chunk_every(10)
+
+      {:ok, board} = Board.init_pieces(Board.new(), placements, 2)
+      piece = Board.lookup_by_coord(board, {9, 6}, 2)
+      assert {:error, "bombs cannot move"} == Board.move(board, 2, piece.uuid, :forward, 1)
+    end
+
+    test "disallows moving a flag" do
+      placements =
+        shuffled_pieces()
+        |> Kernel.--([:flag])
+        |> List.insert_at(2, :flag)
+        |> Enum.chunk_every(10)
+
+      {:ok, board} = Board.init_pieces(Board.new(), placements, 1)
+      piece = Board.lookup_by_coord(board, {2, 6}, 1)
+      assert {:error, "flags cannot move"} == Board.move(board, 1, piece.uuid, :forward, 1)
+    end
+
+    test "allows moving a scout more than 1 square, if open, and reveals the piece" do
+      placements =
+        shuffled_pieces()
+        |> Kernel.--([:scout])
+        |> List.insert_at(1, :scout)
+        |> Enum.chunk_every(10)
+
+      {:ok, board} = Board.init_pieces(Board.new(), placements, 2)
+      piece = Board.lookup_by_coord(board, {1, 6}, 2)
+      {:ok, new_board} = Board.move(board, 2, piece.uuid, :forward, 6)
+
+      assert {{1, 0}, %Piece{piece | visible: true}} ==
+               Board.lookup_by_uuid(new_board, piece.uuid, 2)
+    end
+
+    # test "so long as they move at least 1 square, stops a scout if they hit a barrier or opponent piece", %{board: board} do
+    # end
+
+    # test "reveals both the attacker and defender if an attack happens", %{board: board} do
+    # end
+
+    # test "returns a win if piece moves onto opponent flag", %{board: board} do
+    # end
+
+    # test "errors when piece attacks piece of the same player", %{board: board} do
+    # end
+
+    # test "removes the attacking piece if loses battle", %{board: board} do
+    # end
+
+    # test "removes the defending piece if loses battle", %{board: board} do
+    # end
+
+    # test "removes both the attacking and defending piece if loses battle", %{board: board} do
+    # end
   end
 
   # mask board
