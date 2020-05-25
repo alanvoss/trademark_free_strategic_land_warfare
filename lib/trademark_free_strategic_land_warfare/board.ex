@@ -145,7 +145,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
       {{x, y}, %Piece{player: ^player} = piece} ->
         advance(board, piece, {x, y}, maybe_invert_player_direction(direction, player), count)
 
-      _ ->
+      m ->
         {:error, "you cannot move the other player's piece"}
     end
   end
@@ -247,7 +247,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
           advance(board, piece, new_coord, direction, count - 1)
 
         _ ->
-          # we hit something prematurely, either a lake, or another player,
+          # we hit something prematurely, either a lake, or a piece,
           # so scout multiple square advancement ends here
           advance(board, piece, {x, y}, direction, 1)
       end
@@ -255,9 +255,12 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
   end
 
   # have to update the lookups after moving
-  defp advance(board, piece, {x, y}, direction, 1) do
+  defp advance(board, %Piece{player: player} = piece, {x, y}, direction, 1) do
     with new_coord <- new_coordinate({x, y}, direction) do
       case lookup_by_coord(board, new_coord) do
+        %Piece{player: ^player} ->
+          {:error, "you can't run into your own team's piece"}
+
         %Piece{} = defender ->
           attack(board, piece, defender, new_coord)
 
@@ -286,7 +289,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
             # it to other player for future turns.
             piece = Piece.reveal(piece)
 
-            {:ok, place_piece(board_with_removed_pieces, piece, coord)}
+            place_piece(board_with_removed_pieces, piece, coord)
 
           [] ->
             # equivalent ranks, so both pieces are removed

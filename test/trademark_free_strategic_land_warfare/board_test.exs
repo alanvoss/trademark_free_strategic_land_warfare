@@ -372,17 +372,84 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
                Board.lookup_by_uuid(new_board, piece.uuid, 2)
     end
 
-    # test "so long as they move at least 1 square, stops a scout if they hit a barrier or opponent piece", %{board: board} do
-    # end
+    test "stops a scout if they hit an opponent piece (attacking logic included here)" do
+      {board, piece} = place_piece_at(:scout, 0, 1)
+      opponent_piece = Piece.new(:spy, 2)
+      {:ok, board_with_opponent_piece} = Board.place_piece(board, opponent_piece, {9, 6}, 2)
+      {:ok, new_board} = Board.move(board_with_opponent_piece, 1, piece.uuid, :forward, 6)
 
-    # test "reveals both the attacker and defender if an attack happens", %{board: board} do
-    # end
+      assert {{0, 3}, %Piece{piece | visible: true}} ==
+               Board.lookup_by_uuid(new_board, piece.uuid, 1)
+    end
 
-    # test "returns a win if piece moves onto opponent flag", %{board: board} do
-    # end
+    test "a scout errors if it hits its own piece" do
+      scout = Piece.new(:scout, 2)
+      marshall = Piece.new(:marshall, 2)
 
-    # test "errors when piece attacks piece of the same player", %{board: board} do
-    # end
+      {:ok, board_with_scout_piece} = Board.place_piece(Board.new(), scout, {5, 6}, 2)
+
+      {:ok, board_with_marshall_piece} =
+        Board.place_piece(board_with_scout_piece, marshall, {5, 9}, 2)
+
+      assert {:error, "you can't run into your own team's piece"} =
+               Board.move(board_with_marshall_piece, 2, scout.uuid, :backward, 6)
+    end
+
+    test "a scout errors if it hits a barrier" do
+      scout = Piece.new(:scout, 1)
+      {:ok, board} = Board.place_piece(Board.new(), scout, {4, 3}, 1)
+
+      assert {:error, "can't place a piece out of bounds"} =
+               Board.move(board, 1, scout.uuid, :right, 6)
+    end
+
+    test "reveals either the attacker and defender if an attack happens and a piece remains" do
+      bomb = Piece.new(:bomb, 1)
+      assert bomb.visible == false
+
+      captain = Piece.new(:captain, 2)
+      assert captain.visible == false
+
+      # these pieces are next to each other, but the coordinates were placed as different players
+      {:ok, board_with_bomb_piece} = Board.place_piece(Board.new(), bomb, {7, 2}, 1)
+
+      {:ok, board_with_captain_piece} =
+        Board.place_piece(board_with_bomb_piece, captain, {1, 7}, 2)
+
+      assert {:ok, attack_finished_board} =
+               Board.move(board_with_captain_piece, 2, captain.uuid, :right, 1)
+
+      assert nil == Board.lookup_by_uuid(attack_finished_board, captain.uuid, 2)
+
+      assert {{7, 2}, %Piece{bomb | visible: true}} ==
+               Board.lookup_by_uuid(attack_finished_board, bomb.uuid, 1)
+    end
+
+    test "returns a win if piece moves onto opponent flag" do
+      flag = Piece.new(:flag, 1)
+      assert flag.visible == false
+
+      major = Piece.new(:major, 2)
+      assert major.visible == false
+
+      # these pieces are next to each other, but the coordinates were placed as different players
+      {:ok, board_with_flag_piece} = Board.place_piece(Board.new(), flag, {2, 9}, 1)
+      {:ok, board_with_major_piece} = Board.place_piece(board_with_flag_piece, major, {7, 1}, 2)
+      assert {:ok, :win} = Board.move(board_with_major_piece, 2, major.uuid, :forward, 1)
+    end
+
+    test "errors when piece attacks piece of the same player" do
+      spy = Piece.new(:spy, 1)
+      colonel = Piece.new(:colonel, 1)
+
+      {:ok, board_with_spy_piece} = Board.place_piece(Board.new(), spy, {3, 9}, 1)
+
+      {:ok, board_with_colonel_piece} =
+        Board.place_piece(board_with_spy_piece, colonel, {4, 9}, 1)
+
+      assert {:error, "you can't run into your own team's piece"} =
+               Board.move(board_with_colonel_piece, 1, colonel.uuid, :left, 1)
+    end
 
     # test "removes the attacking piece if loses battle", %{board: board} do
     # end
@@ -390,7 +457,13 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     # test "removes the defending piece if loses battle", %{board: board} do
     # end
 
+    # test "can't attack own piece (when moving only 1 square)" do
+    # end
+
     # test "removes both the attacking and defending piece if loses battle", %{board: board} do
+    # end
+
+    # test "if any piece other than a scout attempts to go more than 1 space"
     # end
   end
 
