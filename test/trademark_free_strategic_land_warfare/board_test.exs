@@ -49,6 +49,19 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end)
   end
 
+  def place_piece_at(name, index, player) do
+    placements =
+      shuffled_pieces()
+      |> Kernel.--([name])
+      |> List.insert_at(index, name)
+      |> Enum.chunk_every(10)
+
+    {:ok, board} = Board.init_pieces(Board.new(), placements, player)
+    piece = Board.lookup_by_coord(board, {index, 6}, player)
+
+    {board, piece}
+  end
+
   describe "piece_name_counts" do
     test "returns a hash with correct piece counts" do
       counts = Board.piece_name_counts()
@@ -308,56 +321,27 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
 
   describe "move" do
     test "successfully moves to an empty space" do
-      placements =
-        shuffled_pieces()
-        |> Kernel.--([:marshall])
-        |> List.insert_at(0, :marshall)
-        |> Enum.chunk_every(10)
-
-      {:ok, board} = Board.init_pieces(Board.new(), placements, 1)
-      piece = Board.lookup_by_coord(board, {0, 6})
-
+      {board, piece} = place_piece_at(:marshall, 0, 1)
       {:ok, new_board} = Board.move(board, 1, piece.uuid, :forward, 1)
       assert {{0, 5}, piece} == Board.lookup_by_uuid(new_board, piece.uuid, 1)
     end
 
     test "errors when trying to move to a lake" do
-      placements =
-        shuffled_pieces()
-        |> Kernel.--([:miner])
-        |> List.insert_at(7, :miner)
-        |> Enum.chunk_every(10)
-
-      {:ok, board} = Board.init_pieces(Board.new(), placements, 2)
-      piece = Board.lookup_by_coord(board, {7, 6}, 2)
+      {board, piece} = place_piece_at(:miner, 7, 2)
 
       assert {:error, "can't place a piece where a lake is"} ==
                Board.move(board, 2, piece.uuid, :forward, 1)
     end
 
     test "errors when trying to move outside of bounds" do
-      placements =
-        shuffled_pieces()
-        |> Kernel.--([:spy])
-        |> List.insert_at(0, :spy)
-        |> Enum.chunk_every(10)
-
-      {:ok, board} = Board.init_pieces(Board.new(), placements, 2)
-      piece = Board.lookup_by_coord(board, {0, 6}, 2)
+      {board, piece} = place_piece_at(:spy, 0, 2)
 
       assert {:error, "can't place a piece out of bounds"} ==
                Board.move(board, 2, piece.uuid, :left, 1)
     end
 
     test "returns an error if other player's piece is attempted to be moved" do
-      placements =
-        shuffled_pieces()
-        |> Kernel.--([:major])
-        |> List.insert_at(4, :major)
-        |> Enum.chunk_every(10)
-
-      {:ok, board} = Board.init_pieces(Board.new(), placements, 1)
-      piece = Board.lookup_by_coord(board, {4, 6}, 1)
+      {board, piece} = place_piece_at(:major, 4, 1)
 
       assert {:error, "you cannot move the other player's piece"} ==
                Board.move(board, 2, piece.uuid, :forward, 1)
@@ -371,38 +355,17 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
 
     test "disallows moving a bomb" do
-      placements =
-        shuffled_pieces()
-        |> Kernel.--([:bomb])
-        |> List.insert_at(9, :bomb)
-        |> Enum.chunk_every(10)
-
-      {:ok, board} = Board.init_pieces(Board.new(), placements, 2)
-      piece = Board.lookup_by_coord(board, {9, 6}, 2)
+      {board, piece} = place_piece_at(:bomb, 9, 2)
       assert {:error, "bombs cannot move"} == Board.move(board, 2, piece.uuid, :forward, 1)
     end
 
     test "disallows moving a flag" do
-      placements =
-        shuffled_pieces()
-        |> Kernel.--([:flag])
-        |> List.insert_at(2, :flag)
-        |> Enum.chunk_every(10)
-
-      {:ok, board} = Board.init_pieces(Board.new(), placements, 1)
-      piece = Board.lookup_by_coord(board, {2, 6}, 1)
+      {board, piece} = place_piece_at(:flag, 2, 1)
       assert {:error, "flags cannot move"} == Board.move(board, 1, piece.uuid, :forward, 1)
     end
 
     test "allows moving a scout more than 1 square, if open, and reveals the piece" do
-      placements =
-        shuffled_pieces()
-        |> Kernel.--([:scout])
-        |> List.insert_at(1, :scout)
-        |> Enum.chunk_every(10)
-
-      {:ok, board} = Board.init_pieces(Board.new(), placements, 2)
-      piece = Board.lookup_by_coord(board, {1, 6}, 2)
+      {board, piece} = place_piece_at(:scout, 1, 2)
       {:ok, new_board} = Board.move(board, 2, piece.uuid, :forward, 6)
 
       assert {{1, 0}, %Piece{piece | visible: true}} ==
