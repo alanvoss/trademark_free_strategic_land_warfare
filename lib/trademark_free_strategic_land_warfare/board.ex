@@ -145,7 +145,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
       {{x, y}, %Piece{player: ^player} = piece} ->
         advance(board, piece, {x, y}, maybe_invert_player_direction(direction, player), count)
 
-      m ->
+      _ ->
         {:error, "you cannot move the other player's piece"}
     end
   end

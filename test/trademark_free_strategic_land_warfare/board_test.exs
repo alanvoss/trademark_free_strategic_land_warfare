@@ -493,9 +493,77 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     end
   end
 
-  # mask board
-  #   player 1
-  #   player 2
+  describe "maybe_invert_player_direction" do
+    test "same for player 1" do
+      directions = [:forward, :backward, :right, :left]
+
+      assert directions ==
+               for(direction <- directions, do: Board.maybe_invert_player_direction(direction, 1))
+    end
+
+    test "inverts for player 2" do
+      directions = [:forward, :backward, :right, :left]
+
+      assert [:backward, :forward, :left, :right] ==
+               for(direction <- directions, do: Board.maybe_invert_player_direction(direction, 2))
+    end
+  end
+
+  describe "new_coordinate" do
+    test "moves forward" do
+      assert {2, 0} == Board.new_coordinate({2, 1}, :forward)
+    end
+
+    test "moves backward" do
+      assert {8, 8} == Board.new_coordinate({8, 7}, :backward)
+    end
+
+    test "moves left" do
+      assert {4, 5} == Board.new_coordinate({5, 5}, :left)
+    end
+
+    test "moves right" do
+      assert {8, 2} == Board.new_coordinate({7, 2}, :right)
+    end
+  end
+
+  describe "mask_board" do
+    test "for the player whose piece it is, pieces aren't masked" do
+      {board, [flag, major]} =
+        place_only([
+          {{9, 0}, Piece.new(:flag, 1)},
+          {{9, 1}, Piece.new(:major, 2)}
+        ])
+
+      board_for_player_1 = Board.mask_board(board, 1)
+      board_for_player_2 = Board.mask_board(board, 2)
+      assert board_for_player_1 != board_for_player_2
+
+      assert {{9, 0}, %Piece{name: :flag, rank: nil, lose_when_attacked_by: nil}} =
+               Board.lookup_by_uuid(board_for_player_1, flag.uuid, 1)
+
+      assert {{9, 1}, %Piece{name: nil, rank: nil, lose_when_attacked_by: nil}} =
+               Board.lookup_by_uuid(board_for_player_1, major.uuid, 1)
+    end
+
+    test "when marked visible, the piece is revealed to the opponent" do
+      {board, [flag, major]} =
+        place_only([
+          {{9, 0}, Piece.new(:flag, 1)},
+          {{9, 1}, :major |> Piece.new(2) |> Piece.reveal()}
+        ])
+
+      board_for_player_1 = Board.mask_board(board, 1)
+      board_for_player_2 = Board.mask_board(board, 2)
+      assert board_for_player_1 != board_for_player_2
+
+      assert {{9, 0}, %Piece{name: :flag, rank: nil, lose_when_attacked_by: nil}} =
+               Board.lookup_by_uuid(board_for_player_1, flag.uuid, 1)
+
+      assert {{9, 1}, %Piece{name: :major, rank: 7, lose_when_attacked_by: nil}} =
+               Board.lookup_by_uuid(board_for_player_1, major.uuid, 1)
+    end
+  end
 
   # describe "new" do
 
