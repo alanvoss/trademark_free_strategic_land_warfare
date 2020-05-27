@@ -5,10 +5,10 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
   @type t() :: %__MODULE__{
           uuid: String.t(),
           player: Integer.t(),
-          name: String.t(),
+          name: Atom.t(),
           visible: boolean(),
           rank: Integer.t(),
-          lose_when_attacked_by: [Tuple.t()]
+          lose_when_attacked_by: Atom.t()
         }
 
   @name_properties %{
@@ -114,6 +114,14 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
       {:ok, [remove: [attacker.uuid]]}
     end
   end
+
+  # at least one is a masked piece, so can't be sure what will happen.
+  # this would never happen for the game engine, but when a player
+  # uses it on their turn, the opponent might have a masked piece,
+  # in which case the rank, name, and what they lose to might be hidden
+  # if the piece has never been attacked before or if it is a scout
+  # and has never moved 2 or more pieces.
+  def attack(_, _), do: {:error, :unknown_result}
 
   def names() do
     @names
