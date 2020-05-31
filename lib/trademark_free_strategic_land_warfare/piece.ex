@@ -1,4 +1,5 @@
 defmodule TrademarkFreeStrategicLandWarfare.Piece do
+  @derive Jason.Encoder
   @enforce_keys [:uuid, :player, :visible]
   defstruct uuid: nil, player: nil, name: nil, visible: nil, rank: nil, lose_when_attacked_by: nil
 
