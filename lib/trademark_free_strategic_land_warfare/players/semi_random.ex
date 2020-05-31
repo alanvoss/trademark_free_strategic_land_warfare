@@ -15,7 +15,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Players.SemiRandom do
     |> Enum.chunk_every(10)
   end
 
-  def turn(%Board{rows: rows, lookup: lookup} = board, %Player{number: number}, state) do
+  def turn(%Board{rows: rows} = board, %Player{number: number}, state) do
     # find all eligible pieces
     move_partitioned_pieces =
       Enum.flat_map(rows, fn
@@ -67,7 +67,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Players.SemiRandom do
               dir_acc,
               direction,
               [{piece.uuid, direction}],
-              &[{piece.uuid, direction} | &1]
+              &[{piece.uuid, direction, 1} | &1]
             )
 
           _ ->
