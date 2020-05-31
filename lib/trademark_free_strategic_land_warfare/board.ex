@@ -1,4 +1,5 @@
 defmodule TrademarkFreeStrategicLandWarfare.Board do
+  @derive Jason.Encoder
   @enforce_keys [:rows, :lookup]
   defstruct rows: nil, lookup: nil
 
