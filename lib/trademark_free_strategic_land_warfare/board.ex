@@ -296,8 +296,12 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
             {:ok, board_with_removed_pieces}
         end
 
+      {:ok, :win} ->
+        board_with_removed_pieces = remove_pieces(board, [defender])
+        {:ok, :win, place_piece(board_with_removed_pieces, attacker, coord)}
+
       other ->
-        # either {:ok, :win} or an {:error, reason}
+        # an {:error, reason}
         other
     end
   end

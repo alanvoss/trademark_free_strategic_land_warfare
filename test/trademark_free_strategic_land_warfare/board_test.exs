@@ -87,6 +87,8 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     test "for player 2, flip the board to player perspective before inserting" do
       placements = good_piece_setup()
       {:ok, new_board} = Board.init_pieces(Board.new(), placements, 2)
+      require IEx
+      IEx.pry()
       assert placements_from_board(new_board, 2) == placements
     end
 
@@ -432,7 +434,8 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
           {{2, 8}, Piece.new(:major, 2)}
         ])
 
-      assert {:ok, :win} = Board.move(board, 2, major.uuid, :forward, 1)
+      assert {:ok, :win, new_board} = Board.move(board, 2, major.uuid, :forward, 1)
+      assert board != new_board
     end
 
     test "errors when piece attacks piece of the same player" do
