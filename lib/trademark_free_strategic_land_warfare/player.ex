@@ -1,4 +1,5 @@
 defmodule TrademarkFreeStrategicLandWarfare.Player do
+  @derive Jason.Encoder
   @enforce_keys [:name, :number, :module]
   defstruct name: nil, number: nil, module: nil
 
@@ -11,6 +12,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Player do
   @type state() :: any()
   @type piece_uuid() :: String.t()
   @type direction() :: Atom.t()
+  @type count() :: Integer.t()
 
   # return a string that your module will be referred by in the tournament.
   #   NOTE: it should be deterministic and return the same thing across
@@ -43,7 +45,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Player do
               TrademarkFreeStrategicLandWarfare.Board.t(),
               TrademarkFreeStrategicLandWarfare.Player.t(),
               state()
-            ) :: {piece_uuid(), direction(), state()}
+            ) :: {piece_uuid(), direction(), count(), state()}
 
   def new(module, number) when number in [1, 2] do
     %__MODULE__{
