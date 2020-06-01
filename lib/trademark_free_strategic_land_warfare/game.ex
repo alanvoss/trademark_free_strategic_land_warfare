@@ -23,6 +23,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
   defstruct players: nil, player_states: nil, board: nil, frames: nil, timestamp: nil
 
   @timeout 5000
+  @max_turns 10_000
 
   alias TrademarkFreeStrategicLandWarfare.{Player, Board, Frame, TaskSupervisor}
 
@@ -49,34 +50,32 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
 
     case results do
       [nil, nil] ->
-        tie(Board.new(), [], players, {:error, "no moves"})
+        tie(nil, players, {:error, "no moves"})
 
       [nil, placements] ->
         case Board.init_pieces(Board.new(), placements, 2) do
           {:error, error} ->
             tie(
-              Board.new(),
-              [],
+              nil,
               players,
               {:error, "player 1 timeout, player 2 incorrect placements #{inspect(error)}"}
             )
 
           {:ok, board} ->
-            winner(board, [], players, 2, {:error, "player 1 timeout"})
+            winner(nil, board, players, 2, {:error, "player 1 timeout"})
         end
 
       [placements, nil] ->
         case Board.init_pieces(Board.new(), placements, 1) do
           {:error, error} ->
             tie(
-              Board.new(),
-              [],
+              nil,
               players,
               {:error, "player 2 timeout, player 1 incorrect placements #{inspect(error)}"}
             )
 
           {:ok, board} ->
-            winner(board, [], players, 1, {:error, "player 2 timeout"})
+            winner(nil, board, players, 1, {:error, "player 2 timeout"})
         end
 
       [placements1, placements2] ->
@@ -90,23 +89,33 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
           player_states: [nil, nil],
           board: board,
           frames: [Frame.new(board.rows, {:ok, "both players placed pieces successfully"}, nil)],
+          # don't call DateTime.now! more than once per game
           timestamp: DateTime.now!("Etc/UTC")
         }
-        |> perform_turns(1, 0, [])
+        |> perform_turns(1, [], 0)
     end
   end
 
-  defp perform_turns(%__MODULE__{} = game, player_number, 3, errors) do
-    winner(
+  defp perform_turns(%__MODULE__{} = game, 1, _, @max_turns) do
+    tie(
+      game,
       game.board,
-      game.frames,
-      game.players,
+      game.states,
+      {:error, "max turns reached (#{@max_turns}.  tie game."}
+    )
+  end
+
+  defp perform_turns(%__MODULE__{} = game, player_number, errors, _) when length(errors) == 3 do
+    winner(
+      game,
+      game.board,
+      game.player_states,
       other_player_number(player_number),
       {:error, "player #{player_number} 3 errors in a row, #{inspect(errors)}"}
     )
   end
 
-  defp perform_turns(%__MODULE__{} = game, player_number, error_count, errors) do
+  defp perform_turns(%__MODULE__{} = game, player_number, errors, turn_count) do
     {%Player{number: ^player_number, module: module} = player, state} =
       game.players
       |> Enum.zip(game.player_states)
@@ -146,49 +155,49 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
             perform_turns(
               game,
               player_number,
-              error_count + 1,
               errors ++
                 [
                   "#{player_number} tried to move #{piece_uuid}, a #{piece.name}, #{direction} to coordinate {#{
                     x
                   }, #{y}}, but failed: #{inspect(error)}"
-                ]
+                ],
+              turn_count + 1
             )
 
           {:ok, :win, new_board} ->
             winner(
+              game,
               new_board,
-              game.frames,
-              game.players,
+              List.update_at(game.player_states, player_number - 1, fn _ -> state end),
               player_number,
               {:ok,
                "player #{player_number} captured player #{other_player_number(player_number)}'s flag"}
             )
 
           {:ok, new_board} ->
-            %__MODULE__{
-              game
-              | player_states:
-                  List.update_at(game.player_states, player_number - 1, fn _ -> state end),
-                board: new_board,
-                frames:
-                  game.previous_frames ++
-                    [
-                      Frame.new(
-                        new_board.rows,
-                        {:ok, "player #{player_number} successfully moved"},
-                        nil
-                      )
-                    ]
-            }
-            |> perform_turns(other_player_number(player_number), 0, [])
+            game
+            |> struct(
+              player_states:
+                List.update_at(game.player_states, player_number - 1, fn _ -> state end),
+              board: new_board,
+              frames:
+                game.previous_frames ++
+                  [
+                    Frame.new(
+                      new_board.rows,
+                      {:ok, "player #{player_number} successfully moved"},
+                      nil
+                    )
+                  ]
+            )
+            |> perform_turns(other_player_number(player_number), [], turn_count + 1)
         end
 
       _ ->
         winner(
+          game,
           game.board,
-          game.frames,
-          game.players,
+          game.player_states,
           other_player_number(player_number),
           {:error, "player #{player_number} time out or didn't match spec - automatic loss"}
         )
@@ -227,23 +236,45 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
     end
   end
 
-  defp tie(board, frames, players, move) do
-    result(board, frames, players, move, {:ok, :tie})
-  end
+  # only called when neither player placed pieces successfully at beginning
+  defp tie(nil, players, move) do
+    board = Board.new()
 
-  defp winner(board, frames, players, player_number, move) do
-    result(board, frames, players, move, {:ok, :win, player_number})
-  end
-
-  defp result(board, previous_frames, players, move, status) do
     %__MODULE__{
       players: players,
-      # TODO: actual player state in result
       player_states: [nil, nil],
       board: board,
-      frames: previous_frames ++ [Frame.new(board.rows, move, status)],
+      frames: [Frame.new(board.rows, move, {:ok, :tie})],
       timestamp: DateTime.now!("Etc/UTC")
     }
+  end
+
+  defp tie(game, new_board, new_states, move) do
+    result(game, new_board, new_states, move, {:ok, :tie})
+  end
+
+  # only called when one player can't place pieces successfully at beginning
+  defp winner(nil, board, players, player_number, move) do
+    %__MODULE__{
+      players: players,
+      player_states: [nil, nil],
+      board: board,
+      frames: [Frame.new(board.rows, move, {:ok, :win, player_number})],
+      timestamp: DateTime.now!("Etc/UTC")
+    }
+  end
+
+  defp winner(game, new_board, new_states, player_number, move) do
+    result(game, new_board, new_states, move, {:ok, :win, player_number})
+  end
+
+  defp result(game, new_board, states, move, status) do
+    struct(
+      game,
+      board: new_board,
+      frames: game.frames ++ [Frame.new(new_board.rows, move, status)],
+      player_states: states
+    )
   end
 
   def other_player_number(1), do: 2
