@@ -160,11 +160,18 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
   def maybe_translate_coord({x, y}, 2), do: {9 - x, 9 - y}
 
   def new_coordinate({x, y}, direction) do
-    case direction do
-      :north -> {x, y - 1}
-      :south -> {x, y + 1}
-      :west -> {x - 1, y}
-      :east -> {x + 1, y}
+    {new_x, new_y} =
+      case direction do
+        :north -> {x, y - 1}
+        :south -> {x, y + 1}
+        :west -> {x - 1, y}
+        :east -> {x + 1, y}
+      end
+
+    if new_x >= 0 and new_x < 10 and new_y >= 0 and new_y < 10 do
+      {new_x, new_y}
+    else
+      nil
     end
   end
 
@@ -243,27 +250,34 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     {:error, "flags cannot move"}
   end
 
-  # advance until you hit something in case of scout
+  # advance until you hit something in case of scout, and reveal piece if move more than 1
   defp advance(board, %Piece{name: :scout} = piece, {x, y}, direction, count) when count > 1 do
-    with new_coord <- new_coordinate({x, y}, direction) do
+    with new_coord = {new_x, new_y} when is_integer(new_x) and is_integer(new_y) <-
+           new_coordinate({x, y}, direction) do
       case lookup_by_coord(board, new_coord) do
         nil ->
-          # we are advancing by at least two, so other player now has knowledge that
+          # since this space is empty, and we are advancing by at least two (on next
+          # iteration of this function), so other player now has knowledge that
           # this is a scout piece, so revealing it.
           piece = Piece.reveal(piece)
           advance(board, piece, new_coord, direction, count - 1)
 
         _ ->
           # we hit something prematurely, either a lake, or a piece,
-          # so scout multiple square advancement ends here
+          # so scout multiple square advancement ends here, and we'll let
+          # the "normal" advance by 1 logic version of this function
+          # catch any errors, move, or attack
           advance(board, piece, {x, y}, direction, 1)
       end
+    else
+      nil -> {:error, "attempt to move out of bounds isn't allowed"}
     end
   end
 
   # have to update the lookups after moving
   defp advance(board, %Piece{player: player} = piece, {x, y}, direction, 1) do
-    with new_coord <- new_coordinate({x, y}, direction) do
+    with new_coord = {new_x, new_y} when is_integer(new_x) and is_integer(new_y) <-
+           new_coordinate({x, y}, direction) do
       case lookup_by_coord(board, new_coord) do
         %Piece{player: ^player} ->
           {:error, "you can't run into your own team's piece"}
@@ -274,10 +288,12 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
         _ ->
           place_piece(board, piece, new_coord)
       end
+    else
+      nil -> {:error, "attempt to move out of bounds isn't allowed"}
     end
   end
 
-  defp advance(_, _, _, _, _) do
+  defp advance(_, _, _, _, n) when n != 1 do
     {:error, "all pieces except the scout can only advance 1"}
   end
 
@@ -304,8 +320,12 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
         end
 
       {:ok, :win} ->
-        board_with_removed_pieces = remove_pieces(board, [defender])
-        {:ok, :win, place_piece(board_with_removed_pieces, attacker, coord)}
+        {:ok, board_with_flag_removed} =
+          board
+          |> remove_piece(defender)
+          |> place_piece(attacker, coord)
+
+        {:ok, :win, board_with_flag_removed}
 
       other ->
         # an {:error, reason}

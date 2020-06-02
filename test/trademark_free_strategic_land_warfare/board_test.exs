@@ -312,7 +312,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     test "errors when trying to move outside of bounds" do
       {board, piece} = place_piece_at(:spy, 0, 2)
 
-      assert {:error, "can't place a piece out of bounds"} ==
+      assert {:error, "attempt to move out of bounds isn't allowed"} ==
                Board.move(board, 2, piece.uuid, :east, 1)
     end
 
@@ -369,13 +369,13 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
                Board.move(board, 2, scout.uuid, :north, 7)
     end
 
-    test "a scout errors if it hits a barrier" do
+    test "a scout errors if it hits the board boundary" do
       {board, [scout]} =
         place_only([
           {{4, 3}, Piece.new(:scout, 1)}
         ])
 
-      assert {:error, "can't place a piece out of bounds"} =
+      assert {:error, "attempt to move out of bounds isn't allowed"} =
                Board.move(board, 1, scout.uuid, :east, 6)
     end
 
@@ -494,6 +494,10 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
 
     test "moves east" do
       assert {8, 2} == Board.new_coordinate({7, 2}, :east)
+    end
+
+    test "when attempting to move out of bounds, return nil" do
+      assert nil == Board.new_coordinate({0, 5}, :west)
     end
   end
 

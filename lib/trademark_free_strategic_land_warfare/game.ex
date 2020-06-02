@@ -23,7 +23,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
   defstruct players: nil, player_states: nil, board: nil, frames: nil, timestamp: nil
 
   @timeout 500_000_000
-  @max_turns 10_000
+  @max_turns 20_000
 
   alias TrademarkFreeStrategicLandWarfare.{Player, Board, Frame, TaskSupervisor}
 
@@ -98,7 +98,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
     tie(
       game,
       game.board,
-      game.states,
+      game.player_states,
       {:error, "max turns reached (#{@max_turns}.  tie game."}
     )
   end
@@ -119,36 +119,22 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
       |> Enum.zip(game.player_states)
       |> Enum.at(player_number - 1)
 
-    board_for_player_perspective =
-      struct(game.board,
-        rows:
-          game.board
-          # mask board when passing to player
-          |> Board.mask_board(player_number)
-          |> Map.get(:rows)
-          # for move, flip for player 2 for display
-          |> Board.maybe_flip(player_number)
-      )
+    # mask board when passing to player
+    board_for_player = Board.mask_board(game.board, player_number)
 
     turn_result =
       module
-      |> perform_task(:turn, [board_for_player_perspective, player, state])
+      |> perform_task(:turn, [board_for_player, player, state])
       |> task_result()
 
     case turn_result do
       {piece_uuid, direction, count, state}
       when is_binary(piece_uuid) and
-             direction in [:forward, :backward, :left, :right] and
+             direction in [:north, :south, :west, :east] and
              is_integer(count) ->
         case Board.move(game.board, player_number, piece_uuid, direction, count) do
           {:error, error} ->
-            {current_coord, piece} = Board.lookup_by_uuid(game.board, piece_uuid)
-
-            {x, y} =
-              Board.new_coordinate(
-                current_coord,
-                Board.maybe_invert_player_direction(direction, player_number)
-              )
+            {{x, y}, piece} = Board.lookup_by_uuid(game.board, piece_uuid)
 
             perform_turns(
               game,
