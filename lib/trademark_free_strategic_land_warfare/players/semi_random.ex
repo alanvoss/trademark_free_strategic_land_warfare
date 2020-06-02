@@ -18,7 +18,9 @@ defmodule TrademarkFreeStrategicLandWarfare.Players.SemiRandom do
   def turn(%Board{rows: rows} = board, %Player{number: number}, state) do
     # find all eligible pieces
     move_partitioned_pieces =
-      Enum.flat_map(rows, fn
+      rows
+      |> List.flatten()
+      |> Enum.flat_map(fn
         %Piece{player: ^number, name: name} = piece when name not in [:bomb, :flag] -> [piece]
         _ -> []
       end)
@@ -58,15 +60,20 @@ defmodule TrademarkFreeStrategicLandWarfare.Players.SemiRandom do
           {:error, _} ->
             dir_acc
 
-          {:ok, :win} ->
-            Map.update(dir_acc, :win, [{piece.uuid, direction}], &[{piece.uuid, direction} | &1])
+          {:ok, :win, _} ->
+            Map.update(
+              dir_acc,
+              :win,
+              [{piece.uuid, direction, 1}],
+              &[{piece.uuid, direction, 1} | &1]
+            )
 
           {:ok, %Board{}} ->
             # allowed move -- no differentiation on whether attack happened in semi-random
             Map.update(
               dir_acc,
               direction,
-              [{piece.uuid, direction}],
+              [{piece.uuid, direction, 1}],
               &[{piece.uuid, direction, 1} | &1]
             )
 
