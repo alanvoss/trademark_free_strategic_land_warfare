@@ -79,10 +79,8 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
         end
 
       [placements1, placements2] ->
-        board =
-          Board.new()
-          |> Board.init_pieces(placements1, 1)
-          |> Board.init_pieces(placements2, 2)
+        {:ok, board_player_1} = Board.init_pieces(Board.new(), placements1, 1)
+        {:ok, board} = Board.init_pieces(board_player_1, placements2, 2)
 
         %__MODULE__{
           players: players,
@@ -181,7 +179,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
                 List.update_at(game.player_states, player_number - 1, fn _ -> state end),
               board: new_board,
               frames:
-                game.previous_frames ++
+                game.frames ++
                   [
                     Frame.new(
                       new_board.rows,
