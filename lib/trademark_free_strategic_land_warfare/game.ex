@@ -22,10 +22,10 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
   @enforce_keys [:players, :player_states, :board, :frames, :timestamp]
   defstruct players: nil, player_states: nil, board: nil, frames: nil, timestamp: nil
 
-  @timeout 500_000_000
+  @timeout 5000
   @max_turns 20_000
 
-  alias TrademarkFreeStrategicLandWarfare.{Player, Board, Frame, TaskSupervisor}
+  alias TrademarkFreeStrategicLandWarfare.{Player, Board, Frame}
 
   @type t() :: %__MODULE__{
           players: [Player.t()],
@@ -49,33 +49,47 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
       |> Enum.map(fn task -> task_result(task) end)
 
     case results do
-      [nil, nil] ->
-        tie(nil, players, {:error, "no moves"})
+      [p1, p2]
+      when p1 in [nil, {:error, :task_exception}] and p2 in [nil, {:error, :task_exception}] ->
+        tie(
+          nil,
+          players,
+          {:error,
+           "no moves - both players either timed out or threw exception - player 1: #{inspect(p1)}, player 2: #{
+             inspect(p2)
+           }"}
+        )
 
-      [nil, placements] ->
+      [p1, placements] when p1 in [nil, {:error, :task_exception}] ->
         case Board.init_pieces(Board.new(), placements, 2) do
           {:error, error} ->
             tie(
               nil,
               players,
-              {:error, "player 1 timeout, player 2 incorrect placements #{inspect(error)}"}
+              {:error,
+               "player 1 timeout/exception #{inspect(p1)}, player 2 incorrect placements #{
+                 inspect(error)
+               }"}
             )
 
           {:ok, board} ->
-            winner(nil, board, players, 2, {:error, "player 1 timeout"})
+            winner(nil, board, players, 2, {:error, "player 1 timeout/exception #{inspect(p1)}"})
         end
 
-      [placements, nil] ->
+      [placements, p2] when p2 in [nil, {:error, :task_exception}] ->
         case Board.init_pieces(Board.new(), placements, 1) do
           {:error, error} ->
             tie(
               nil,
               players,
-              {:error, "player 2 timeout, player 1 incorrect placements #{inspect(error)}"}
+              {:error,
+               "player 2 timeout/exception #{inspect(p2)}, player 1 incorrect placements #{
+                 inspect(error)
+               }"}
             )
 
           {:ok, board} ->
-            winner(nil, board, players, 1, {:error, "player 2 timeout"})
+            winner(nil, board, players, 1, {:error, "player 2 timeout/exception #{inspect(p2)}"})
         end
 
       [placements1, placements2] ->
@@ -128,6 +142,19 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
       |> task_result()
 
     case turn_result do
+      player_turn_result when player_turn_result in [nil, {:error, :task_exception}] ->
+        perform_turns(
+          game,
+          player_number,
+          errors ++
+            [
+              "Player number #{player_number} timeout/exception when trying to perform :turn - #{
+                inspect(player_turn_result)
+              }"
+            ],
+          turn_count + 1
+        )
+
       {piece_uuid, direction, count, state}
       when is_binary(piece_uuid) and
              direction in [:north, :south, :west, :east] and
@@ -141,9 +168,9 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
               player_number,
               errors ++
                 [
-                  "#{player_number} tried to move #{piece_uuid}, a #{piece.name}, #{direction} to coordinate {#{
-                    x
-                  }, #{y}}, but failed: #{inspect(error)}"
+                  "Player number #{player_number} tried to move #{piece_uuid}, a #{piece.name}, #{
+                    direction
+                  } to coordinate {#{x}, #{y}}, but failed: #{inspect(error)}"
                 ],
               turn_count + 1
             )
@@ -203,10 +230,13 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
   # end
 
   defp perform_task(module, function, arguments) do
-    Task.Supervisor.async_nolink(
-      TaskSupervisor,
-      fn -> apply(module, function, arguments) end
-    )
+    Task.async(fn ->
+      try do
+        apply(module, function, arguments)
+      rescue
+        _ -> {:error, :task_exception}
+      end
+    end)
   end
 
   defp task_result(task) do
