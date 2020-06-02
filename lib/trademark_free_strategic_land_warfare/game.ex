@@ -22,7 +22,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
   @enforce_keys [:players, :player_states, :board, :frames, :timestamp]
   defstruct players: nil, player_states: nil, board: nil, frames: nil, timestamp: nil
 
-  @timeout 5000
+  @timeout 500_000_000
   @max_turns 10_000
 
   alias TrademarkFreeStrategicLandWarfare.{Player, Board, Frame, TaskSupervisor}
@@ -119,7 +119,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
       |> Enum.zip(game.player_states)
       |> Enum.at(player_number - 1)
 
-    board =
+    board_for_player_perspective =
       struct(game.board,
         rows:
           game.board
@@ -132,7 +132,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
 
     turn_result =
       module
-      |> perform_task(:turn, [board, player, state])
+      |> perform_task(:turn, [board_for_player_perspective, player, state])
       |> task_result()
 
     case turn_result do
@@ -140,9 +140,9 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
       when is_binary(piece_uuid) and
              direction in [:forward, :backward, :left, :right] and
              is_integer(count) ->
-        case Board.move(board, player_number, piece_uuid, direction, count) do
+        case Board.move(game.board, player_number, piece_uuid, direction, count) do
           {:error, error} ->
-            {current_coord, piece} = Board.lookup_by_uuid(board, piece_uuid)
+            {current_coord, piece} = Board.lookup_by_uuid(game.board, piece_uuid)
 
             {x, y} =
               Board.new_coordinate(
