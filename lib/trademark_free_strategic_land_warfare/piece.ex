@@ -1,13 +1,15 @@
 defmodule TrademarkFreeStrategicLandWarfare.Piece do
-  @enforce_keys [:uuid, :name, :visible, :rank, :lose_when_attacked_by]
-  defstruct uuid: nil, name: nil, visible: nil, rank: nil, lose_when_attacked_by: nil
+  @derive Jason.Encoder
+  @enforce_keys [:uuid, :player, :visible]
+  defstruct uuid: nil, player: nil, name: nil, visible: nil, rank: nil, lose_when_attacked_by: nil
 
   @type t() :: %__MODULE__{
           uuid: String.t(),
-          name: String.t(),
+          player: Integer.t(),
+          name: Atom.t(),
           visible: boolean(),
           rank: Integer.t(),
-          lose_when_attacked_by: [Tuple.t()]
+          lose_when_attacked_by: Atom.t()
         }
 
   @name_properties %{
@@ -27,13 +29,22 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
 
   @names Map.keys(@name_properties)
 
-  def new(name) when name in @names do
+  def new(_, player) when player < 1 or player > 2 do
+    raise "player valid range is 1-2!"
+  end
+
+  def new(name, _) when name not in @names do
+    raise "piece name must be one of #{inspect(@names)}!"
+  end
+
+  def new(name, player) when name in @names do
     properties =
       Map.merge(
         %{
+          uuid: UUID.uuid1(),
+          player: player,
           name: name,
-          visible: false,
-          uuid: UUID.uuid1()
+          visible: false
         },
         @name_properties[name]
       )
@@ -45,6 +56,32 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
     %__MODULE__{piece | visible: true}
   end
 
+  # current player, show piece
+  def maybe_mask(piece = %__MODULE__{player: player}, player) do
+    piece
+  end
+
+  # opposing player, visible (was previously exposed), show piece
+  def maybe_mask(piece = %__MODULE__{visible: true}, _) do
+    piece
+  end
+
+  def maybe_mask(piece, _) when piece in [nil, :lake], do: piece
+
+  # opposing player, not visible, mask piece
+  def maybe_mask(piece, _) do
+    %__MODULE__{
+      uuid: piece.uuid,
+      player: piece.player,
+      name: nil,
+      visible: piece.visible,
+      rank: nil,
+      lose_when_attacked_by: nil
+    }
+  end
+
+  def attack(%__MODULE__{name: :flag}, _), do: {:error, "flag can never be the attacker"}
+  def attack(%__MODULE__{name: :bomb}, _), do: {:error, "bomb can never be the attacker"}
   def attack(_, %__MODULE__{name: :flag}), do: {:ok, :win}
 
   def attack(
@@ -78,6 +115,14 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
       {:ok, [remove: [attacker.uuid]]}
     end
   end
+
+  # at least one is a masked piece, so can't be sure what will happen.
+  # this would never happen for the game engine, but when a player
+  # uses it on their turn, the opponent might have a masked piece,
+  # in which case the rank, name, and what they lose to might be hidden
+  # if the piece has never been attacked before or if it is a scout
+  # and has never moved 2 or more pieces.
+  def attack(_, _), do: {:error, :unknown_result}
 
   def names() do
     @names

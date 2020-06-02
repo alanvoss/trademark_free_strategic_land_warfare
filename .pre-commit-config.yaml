@@ -1,0 +1,23 @@
+- repo: local
+  hooks:
+  - id: mix-test
+    name: 'elixir: mix test'
+    entry: mix test
+    language: system
+    pass_filenames: false
+    files: \.exs*$
+  - id: mix-format
+    name: 'elixir: mix format'
+    entry: mix format
+    #entry: mix format --check-formatted
+    language: system
+    files: \.exs*$
+- repo: git://github.com/pre-commit/pre-commit-hooks
+  rev: v2.5.0
+  hooks:
+  - id: trailing-whitespace
+  - id: check-merge-conflict
+  - id: check-yaml
+  - id: end-of-file-fixer
+  - id: no-commit-to-branch
+    args: [-b, master]
