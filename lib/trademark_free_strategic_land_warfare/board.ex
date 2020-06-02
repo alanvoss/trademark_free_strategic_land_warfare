@@ -78,7 +78,12 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
 
   def lookup_by_coord(board, coord, player \\ 1) do
     {x, y} = translate_coord(coord, player)
-    get_in(board.rows, [Access.at(y), Access.at(x)])
+
+    if x >= 0 and x < 10 and y >= 0 and y < 10 do
+      get_in(board.rows, [Access.at(y), Access.at(x)])
+    else
+      nil
+    end
   end
 
   def remove_pieces(%__MODULE__{} = board, pieces) do
