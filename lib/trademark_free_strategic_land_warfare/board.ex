@@ -63,22 +63,17 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     end
   end
 
-  def translate_coord(coord, 1 = _player), do: coord
-  def translate_coord({x, y}, 2 = _player), do: {9 - x, 9 - y}
-
-  def lookup_by_uuid(board, uuid, player \\ 1) do
+  def lookup_by_uuid(board, uuid) do
     case board.lookup[uuid] do
       nil ->
         nil
 
-      coord ->
-        {translate_coord(coord, player), lookup_by_coord(board, coord)}
+      {_, _} = coord ->
+        {coord, lookup_by_coord(board, coord)}
     end
   end
 
-  def lookup_by_coord(board, coord, player \\ 1) do
-    {x, y} = translate_coord(coord, player)
-
+  def lookup_by_coord(board, {x, y}) do
     if x >= 0 and x < 10 and y >= 0 and y < 10 do
       get_in(board.rows, [Access.at(y), Access.at(x)])
     else
@@ -111,26 +106,38 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     end
   end
 
-  def place_piece(board, piece, coord, player \\ 1)
-
-  def place_piece(_, %Piece{}, {x, y}, _) when x in [2, 3, 6, 7] and y in [4, 5] do
+  def place_piece(_, %Piece{}, {x, y}) when x in [2, 3, 6, 7] and y in [4, 5] do
     {:error, "can't place a piece where a lake is"}
   end
 
-  def place_piece(_, %Piece{}, {x, y}, _) when x < 0 or x > 9 or y < 0 or y > 9 do
+  def place_piece(_, %Piece{}, {x, y}) when x < 0 or x >= 10 or y < 0 or y >= 10 do
     {:error, "can't place a piece out of bounds"}
   end
 
-  def place_piece(%__MODULE__{} = board, %Piece{} = piece, {x, y}, player) do
-    {translated_x, translated_y} = translate_coord({x, y}, player)
-
+  def place_piece(%__MODULE__{} = board, %Piece{} = piece, {x, y}) do
     {:ok,
      board
      |> remove_piece(piece)
-     |> put_in([Access.key(:rows), Access.at(translated_y), Access.at(translated_x)], piece)
-     |> put_in([Access.key(:lookup), piece.uuid], {translated_x, translated_y})}
+     |> put_in([Access.key(:rows), Access.at(y), Access.at(x)], piece)
+     |> put_in([Access.key(:lookup), piece.uuid], {x, y})}
   end
 
+  def move(board, player, uuid, direction, count) do
+    case lookup_by_uuid(board, uuid) do
+      nil ->
+        {:error, "no piece with that name"}
+
+      {{x, y}, %Piece{player: ^player} = piece} ->
+        advance(board, piece, {x, y}, direction, count)
+
+      _ ->
+        {:error, "you cannot move the other player's piece"}
+    end
+  end
+
+  # these maybe functions are for if you choose to (maybe, if player 2) flip
+  # the board to think about playing from the bottom to the top always,
+  # rather than bottom down (for player 2).
   def maybe_flip(%__MODULE__{}, _) do
     raise "not implemented for boards, only board rows"
   end
@@ -143,31 +150,21 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     |> Enum.map(&Enum.reverse/1)
   end
 
-  def move(board, player \\ 1, uuid, direction, count) do
-    case lookup_by_uuid(board, uuid) do
-      nil ->
-        {:error, "no piece with that name"}
-
-      {{x, y}, %Piece{player: ^player} = piece} ->
-        advance(board, piece, {x, y}, maybe_invert_player_direction(direction, player), count)
-
-      _ ->
-        {:error, "you cannot move the other player's piece"}
-    end
-  end
-
   def maybe_invert_player_direction(direction, 1), do: direction
-  def maybe_invert_player_direction(:forward, 2), do: :backward
-  def maybe_invert_player_direction(:backward, 2), do: :forward
-  def maybe_invert_player_direction(:left, 2), do: :right
-  def maybe_invert_player_direction(:right, 2), do: :left
+  def maybe_invert_player_direction(:north, 2), do: :south
+  def maybe_invert_player_direction(:south, 2), do: :north
+  def maybe_invert_player_direction(:west, 2), do: :east
+  def maybe_invert_player_direction(:east, 2), do: :west
+
+  def maybe_translate_coord(coord, 1), do: coord
+  def maybe_translate_coord({x, y}, 2), do: {9 - x, 9 - y}
 
   def new_coordinate({x, y}, direction) do
     case direction do
-      :forward -> {x, y - 1}
-      :backward -> {x, y + 1}
-      :left -> {x - 1, y}
-      :right -> {x + 1, y}
+      :north -> {x, y - 1}
+      :south -> {x, y + 1}
+      :west -> {x - 1, y}
+      :east -> {x + 1, y}
     end
   end
 
@@ -183,19 +180,23 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
   end
 
   defp populate_board(%__MODULE__{} = board, rows_of_pieces, player) do
-    {_, new_board} =
-      Enum.reduce(rows_of_pieces, {6, board}, fn row, {y, row_acc} ->
-        {_, new_row} =
-          Enum.reduce(row, {0, row_acc}, fn piece, {x, column_acc} ->
-            {:ok, row_board} = place_piece(column_acc, piece, {x, y}, player)
+    {row_range, column_range} =
+      if player == 1 do
+        {6..9, 0..9}
+      else
+        {3..0, 9..0}
+      end
 
-            {
-              x + 1,
-              row_board
-            }
-          end)
-
-        {y + 1, new_row}
+    new_board =
+      rows_of_pieces
+      |> Enum.zip(row_range)
+      |> Enum.reduce(board, fn {row, y}, row_acc ->
+        row
+        |> Enum.zip(column_range)
+        |> Enum.reduce(row_acc, fn {piece, x}, column_acc ->
+          {:ok, new_board} = place_piece(column_acc, piece, {x, y})
+          new_board
+        end)
       end)
 
     {:ok, new_board}

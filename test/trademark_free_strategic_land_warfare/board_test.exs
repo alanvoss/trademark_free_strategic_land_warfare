@@ -57,14 +57,14 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
       |> Enum.chunk_every(10)
 
     {:ok, board} = Board.init_pieces(Board.new(), placements, player)
-    piece = Board.lookup_by_coord(board, {index, 6}, player)
+    piece = Board.lookup_by_coord(board, Board.maybe_translate_coord({index, 6}, player))
 
     {board, piece}
   end
 
   def place_only(specs) do
     Enum.reduce(specs, {Board.new(), []}, fn {coord, piece}, {board, pieces} ->
-      {:ok, new_board} = Board.place_piece(board, piece, coord, 1)
+      {:ok, new_board} = Board.place_piece(board, piece, coord)
       {new_board, pieces ++ [piece]}
     end)
   end
@@ -87,8 +87,6 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
     test "for player 2, flip the board to player perspective before inserting" do
       placements = good_piece_setup()
       {:ok, new_board} = Board.init_pieces(Board.new(), placements, 2)
-      require IEx
-      IEx.pry()
       assert placements_from_board(new_board, 2) == placements
     end
 
@@ -136,14 +134,14 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
   describe "translate_coord" do
     test "for player 1, no translation for coord" do
       for coord <- [{4, 2}, {5, 8}, {9, 0}] do
-        assert ^coord = Board.translate_coord(coord, 1)
+        assert ^coord = Board.maybe_translate_coord(coord, 1)
       end
     end
 
     test "for player 2, translation to player perspective for coord" do
-      assert {2, 7} = Board.translate_coord({7, 2}, 2)
-      assert {4, 8} = Board.translate_coord({5, 1}, 2)
-      assert {9, 1} = Board.translate_coord({0, 8}, 2)
+      assert {2, 7} = Board.maybe_translate_coord({7, 2}, 2)
+      assert {4, 8} = Board.maybe_translate_coord({5, 1}, 2)
+      assert {9, 1} = Board.maybe_translate_coord({0, 8}, 2)
     end
   end
 
@@ -153,28 +151,14 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
 
       for {row, y} <- rows |> Enum.drop(6) |> Enum.zip(6..9) do
         for {piece, x} <- Enum.zip(row, 0..9) do
-          assert {{^x, ^y}, ^piece} = Board.lookup_by_uuid(board, piece.uuid, 1)
-        end
-      end
-    end
-
-    test "for player 2, perspective for lookup is translated" do
-      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 2)
-
-      for {row, y} <- rows |> Enum.take(4) |> Enum.zip(0..3) do
-        for {piece, x} <- Enum.zip(row, 0..9) do
-          translated_x = 9 - x
-          translated_y = 9 - y
-
-          assert {{^translated_x, ^translated_y}, ^piece} =
-                   Board.lookup_by_uuid(board, piece.uuid, 2)
+          assert {{^x, ^y}, ^piece} = Board.lookup_by_uuid(board, piece.uuid)
         end
       end
     end
 
     test "returns nil when no piece is present with that name" do
       {:ok, %Board{} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 1)
-      assert nil == Board.lookup_by_uuid(board, "my-bogus-id", 1)
+      assert nil == Board.lookup_by_uuid(board, "my-bogus-id")
     end
   end
 
@@ -184,24 +168,17 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
 
       for {row, y} <- rows |> Enum.drop(6) |> Enum.zip(6..9) do
         for {piece, x} <- Enum.zip(row, 0..9) do
-          assert ^piece = Board.lookup_by_coord(board, {x, y}, 1)
-        end
-      end
-    end
-
-    test "for player 2, perspective for lookup is translated" do
-      {:ok, %Board{rows: rows} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 2)
-
-      for {row, y} <- rows |> Enum.take(4) |> Enum.zip(0..3) do
-        for {piece, x} <- Enum.zip(row, 0..9) do
-          assert ^piece = Board.lookup_by_coord(board, {9 - x, 9 - y}, 2)
+          assert ^piece = Board.lookup_by_coord(board, {x, y})
         end
       end
     end
 
     test "when coordinate is out of bounds, doesn't error" do
       {:ok, %Board{} = board} = Board.init_pieces(Board.new(), good_piece_setup(), 2)
-      assert nil == Board.lookup_by_coord(board, {10, 0}, 1)
+      assert nil == Board.lookup_by_coord(board, {10, 0})
+      assert nil == Board.lookup_by_coord(board, {-2, 3})
+      assert nil == Board.lookup_by_coord(board, {5, 10})
+      assert nil == Board.lookup_by_coord(board, {7, -3})
     end
   end
 
@@ -268,24 +245,14 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
       assert {coord, piece} == Board.lookup_by_uuid(new_board, piece.uuid)
     end
 
-    test "place a piece on the board for player 2 translates coordinate" do
-      board = Board.new()
-      piece = Piece.new(:flag, 2)
-      coord = {3, 1}
-      {:ok, new_board} = Board.place_piece(board, piece, coord, 2)
-
-      assert piece == Board.lookup_by_coord(new_board, {6, 8})
-      assert {{6, 8}, piece} == Board.lookup_by_uuid(new_board, piece.uuid)
-    end
-
     test "place a piece on the board removes the piece from previous location" do
       board = Board.new()
       piece = Piece.new(:spy, 2)
-      initial_coord = {2, 2}
-      {:ok, initial_board} = Board.place_piece(board, piece, initial_coord, 2)
+      initial_coord = {7, 7}
+      {:ok, initial_board} = Board.place_piece(board, piece, initial_coord)
 
-      new_coord = {2, 3}
-      {:ok, new_board} = Board.place_piece(initial_board, piece, new_coord, 2)
+      new_coord = {7, 6}
+      {:ok, new_board} = Board.place_piece(initial_board, piece, new_coord)
 
       assert nil == Board.lookup_by_coord(new_board, {7, 7})
       assert piece == Board.lookup_by_coord(new_board, {7, 6})
@@ -298,7 +265,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
       initial_coord = {3, 5}
 
       assert {:error, "can't place a piece where a lake is"} =
-               Board.place_piece(board, piece, initial_coord, 1)
+               Board.place_piece(board, piece, initial_coord)
     end
 
     test "won't place a piece out of bounds" do
@@ -307,7 +274,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
       initial_coord = {11, 6}
 
       assert {:error, "can't place a piece out of bounds"} =
-               Board.place_piece(board, piece, initial_coord, 1)
+               Board.place_piece(board, piece, initial_coord)
     end
   end
 
@@ -331,64 +298,64 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
   describe "move" do
     test "successfully moves to an empty space" do
       {board, piece} = place_piece_at(:marshall, 0, 1)
-      {:ok, new_board} = Board.move(board, 1, piece.uuid, :forward, 1)
-      assert {{0, 5}, piece} == Board.lookup_by_uuid(new_board, piece.uuid, 1)
+      {:ok, new_board} = Board.move(board, 1, piece.uuid, :north, 1)
+      assert {{0, 5}, piece} == Board.lookup_by_uuid(new_board, piece.uuid)
     end
 
     test "errors when trying to move to a lake" do
       {board, piece} = place_piece_at(:miner, 7, 2)
 
       assert {:error, "can't place a piece where a lake is"} ==
-               Board.move(board, 2, piece.uuid, :forward, 1)
+               Board.move(board, 2, piece.uuid, :south, 1)
     end
 
     test "errors when trying to move outside of bounds" do
       {board, piece} = place_piece_at(:spy, 0, 2)
 
       assert {:error, "can't place a piece out of bounds"} ==
-               Board.move(board, 2, piece.uuid, :left, 1)
+               Board.move(board, 2, piece.uuid, :east, 1)
     end
 
     test "returns an error if other player's piece is attempted to be moved" do
       {board, piece} = place_piece_at(:major, 4, 1)
 
       assert {:error, "you cannot move the other player's piece"} ==
-               Board.move(board, 2, piece.uuid, :forward, 1)
+               Board.move(board, 2, piece.uuid, :north, 1)
     end
 
-    test "disallows moving a piece that, doesn't exist on the board" do
+    test "disallows moving a piece that doesn't exist on the board" do
       board = setup_two_players()
 
       assert {:error, "no piece with that name"} ==
-               Board.move(board, 2, "my-bogus-uuid-here", :forward, 2)
+               Board.move(board, 2, "my-bogus-uuid-here", :south, 2)
     end
 
     test "disallows moving a bomb" do
       {board, piece} = place_piece_at(:bomb, 9, 2)
-      assert {:error, "bombs cannot move"} == Board.move(board, 2, piece.uuid, :forward, 1)
+      assert {:error, "bombs cannot move"} == Board.move(board, 2, piece.uuid, :south, 1)
     end
 
     test "disallows moving a flag" do
       {board, piece} = place_piece_at(:flag, 2, 1)
-      assert {:error, "flags cannot move"} == Board.move(board, 1, piece.uuid, :forward, 1)
+      assert {:error, "flags cannot move"} == Board.move(board, 1, piece.uuid, :north, 1)
     end
 
     test "allows moving a scout more than 1 square, if open, and reveals the piece" do
       {board, piece} = place_piece_at(:scout, 1, 2)
-      {:ok, new_board} = Board.move(board, 2, piece.uuid, :forward, 6)
+      {:ok, new_board} = Board.move(board, 2, piece.uuid, :south, 6)
 
-      assert {{1, 0}, %Piece{piece | visible: true}} ==
-               Board.lookup_by_uuid(new_board, piece.uuid, 2)
+      assert {{8, 9}, %Piece{piece | visible: true}} ==
+               Board.lookup_by_uuid(new_board, piece.uuid)
     end
 
     test "stops a scout if they hit an opponent piece (attacking logic included here)" do
       {board, piece} = place_piece_at(:scout, 0, 1)
       opponent_piece = Piece.new(:spy, 2)
-      {:ok, board_with_opponent_piece} = Board.place_piece(board, opponent_piece, {9, 6}, 2)
-      {:ok, new_board} = Board.move(board_with_opponent_piece, 1, piece.uuid, :forward, 6)
+      {:ok, board_with_opponent_piece} = Board.place_piece(board, opponent_piece, {0, 3})
+      {:ok, new_board} = Board.move(board_with_opponent_piece, 1, piece.uuid, :north, 6)
 
       assert {{0, 3}, %Piece{piece | visible: true}} ==
-               Board.lookup_by_uuid(new_board, piece.uuid, 1)
+               Board.lookup_by_uuid(new_board, piece.uuid)
     end
 
     test "a scout errors if it hits its own piece" do
@@ -399,7 +366,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
         ])
 
       assert {:error, "you can't run into your own team's piece"} =
-               Board.move(board, 2, scout.uuid, :backward, 6)
+               Board.move(board, 2, scout.uuid, :north, 7)
     end
 
     test "a scout errors if it hits a barrier" do
@@ -409,7 +376,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
         ])
 
       assert {:error, "can't place a piece out of bounds"} =
-               Board.move(board, 1, scout.uuid, :right, 6)
+               Board.move(board, 1, scout.uuid, :east, 6)
     end
 
     test "reveals either the attacker and defender if an attack happens and a piece remains" do
@@ -419,12 +386,12 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
           {{8, 2}, Piece.new(:captain, 2)}
         ])
 
-      assert {:ok, attack_finished_board} = Board.move(board, 2, captain.uuid, :right, 1)
+      assert {:ok, attack_finished_board} = Board.move(board, 2, captain.uuid, :west, 1)
 
-      assert nil == Board.lookup_by_uuid(attack_finished_board, captain.uuid, 2)
+      assert nil == Board.lookup_by_uuid(attack_finished_board, captain.uuid)
 
       assert {{7, 2}, %Piece{bomb | visible: true}} ==
-               Board.lookup_by_uuid(attack_finished_board, bomb.uuid, 1)
+               Board.lookup_by_uuid(attack_finished_board, bomb.uuid)
     end
 
     test "returns a win if piece moves onto opponent flag" do
@@ -434,7 +401,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
           {{2, 8}, Piece.new(:major, 2)}
         ])
 
-      assert {:ok, :win, new_board} = Board.move(board, 2, major.uuid, :forward, 1)
+      assert {:ok, :win, new_board} = Board.move(board, 2, major.uuid, :south, 1)
       assert board != new_board
     end
 
@@ -446,7 +413,7 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
         ])
 
       assert {:error, "you can't run into your own team's piece"} =
-               Board.move(board, 1, colonel.uuid, :left, 1)
+               Board.move(board, 1, colonel.uuid, :west, 1)
     end
 
     test "removes the attacking piece if loses battle" do
@@ -456,10 +423,10 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
           {{4, 9}, Piece.new(:major, 2)}
         ])
 
-      assert {:ok, attack_finished_board} = Board.move(board, 2, major.uuid, :right, 1)
+      assert {:ok, attack_finished_board} = Board.move(board, 2, major.uuid, :west, 1)
 
       assert {{3, 9}, %Piece{general | visible: true}} ==
-               Board.lookup_by_uuid(attack_finished_board, general.uuid, 1)
+               Board.lookup_by_uuid(attack_finished_board, general.uuid)
     end
 
     test "removes the defending piece if loses battle" do
@@ -469,10 +436,10 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
           {{3, 8}, Piece.new(:miner, 2)}
         ])
 
-      assert {:ok, attack_finished_board} = Board.move(board, 2, miner.uuid, :forward, 1)
+      assert {:ok, attack_finished_board} = Board.move(board, 2, miner.uuid, :south, 1)
 
       assert {{3, 9}, %Piece{miner | visible: true}} ==
-               Board.lookup_by_uuid(attack_finished_board, miner.uuid, 1)
+               Board.lookup_by_uuid(attack_finished_board, miner.uuid)
     end
 
     test "removes both the attacking and defending piece if ties battle" do
@@ -482,10 +449,10 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
           {{9, 1}, Piece.new(:captain, 2)}
         ])
 
-      assert {:ok, attack_finished_board} = Board.move(board, 1, captain1.uuid, :backward, 1)
+      assert {:ok, attack_finished_board} = Board.move(board, 1, captain1.uuid, :south, 1)
 
-      assert nil == Board.lookup_by_uuid(attack_finished_board, captain1.uuid, 1)
-      assert nil == Board.lookup_by_uuid(attack_finished_board, captain2.uuid, 1)
+      assert nil == Board.lookup_by_uuid(attack_finished_board, captain1.uuid)
+      assert nil == Board.lookup_by_uuid(attack_finished_board, captain2.uuid)
     end
 
     test "errors if any piece other than a scout attempts to go more than 1 space" do
@@ -498,35 +465,35 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
 
   describe "maybe_invert_player_direction" do
     test "same for player 1" do
-      directions = [:forward, :backward, :right, :left]
+      directions = [:north, :south, :west, :east]
 
       assert directions ==
                for(direction <- directions, do: Board.maybe_invert_player_direction(direction, 1))
     end
 
     test "inverts for player 2" do
-      directions = [:forward, :backward, :right, :left]
+      directions = [:north, :south, :west, :east]
 
-      assert [:backward, :forward, :left, :right] ==
+      assert [:south, :north, :east, :west] ==
                for(direction <- directions, do: Board.maybe_invert_player_direction(direction, 2))
     end
   end
 
   describe "new_coordinate" do
-    test "moves forward" do
-      assert {2, 0} == Board.new_coordinate({2, 1}, :forward)
+    test "moves north" do
+      assert {2, 0} == Board.new_coordinate({2, 1}, :north)
     end
 
-    test "moves backward" do
-      assert {8, 8} == Board.new_coordinate({8, 7}, :backward)
+    test "moves south" do
+      assert {8, 8} == Board.new_coordinate({8, 7}, :south)
     end
 
-    test "moves left" do
-      assert {4, 5} == Board.new_coordinate({5, 5}, :left)
+    test "moves west" do
+      assert {4, 5} == Board.new_coordinate({5, 5}, :west)
     end
 
-    test "moves right" do
-      assert {8, 2} == Board.new_coordinate({7, 2}, :right)
+    test "moves east" do
+      assert {8, 2} == Board.new_coordinate({7, 2}, :east)
     end
   end
 
@@ -543,10 +510,10 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
       assert board_for_player_1 != board_for_player_2
 
       assert {{9, 0}, %Piece{name: :flag, rank: nil, lose_when_attacked_by: nil}} =
-               Board.lookup_by_uuid(board_for_player_1, flag.uuid, 1)
+               Board.lookup_by_uuid(board_for_player_1, flag.uuid)
 
       assert {{9, 1}, %Piece{name: nil, rank: nil, lose_when_attacked_by: nil}} =
-               Board.lookup_by_uuid(board_for_player_1, major.uuid, 1)
+               Board.lookup_by_uuid(board_for_player_1, major.uuid)
     end
 
     test "when marked visible, the piece is revealed to the opponent" do
@@ -561,10 +528,10 @@ defmodule TrademarkFreeStrategicLandWarfare.BoardTest do
       assert board_for_player_1 != board_for_player_2
 
       assert {{9, 0}, %Piece{name: :flag, rank: nil, lose_when_attacked_by: nil}} =
-               Board.lookup_by_uuid(board_for_player_1, flag.uuid, 1)
+               Board.lookup_by_uuid(board_for_player_1, flag.uuid)
 
       assert {{9, 1}, %Piece{name: :major, rank: 7, lose_when_attacked_by: nil}} =
-               Board.lookup_by_uuid(board_for_player_1, major.uuid, 1)
+               Board.lookup_by_uuid(board_for_player_1, major.uuid)
     end
   end
 
