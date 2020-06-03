@@ -19,11 +19,27 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
       player_modules
       |> Enum.map(& &1.name())
 
+    pieces = [
+      {"marshall", 10},
+      {"general", 9},
+      {"colonel", 8},
+      {"major", 7},
+      {"captain", 6},
+      {"lieutenant", 5},
+      {"sergeant", 4},
+      {"miner", 3},
+      {"scout", 2},
+      {"spy", 1},
+      {"flag", nil},
+      {"bomb", nil}
+    ]
+
     {:ok,
      assign(
        socket,
        rows: Board.new().rows,
-       modules: Enum.zip(player_modules, module_names)
+       modules: Enum.zip(player_modules, module_names),
+       pieces: pieces
      )}
   end
 

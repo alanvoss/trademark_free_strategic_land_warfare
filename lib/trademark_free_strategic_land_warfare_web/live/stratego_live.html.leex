@@ -44,12 +44,26 @@
                   <rect width="50" height="50" style="fill:blue;stroke:black;stroke-width:5;opacity:0.8" />
                 </svg>
               <%= %{player: player_number, name: piece} -> %>
-                <img src="<%= "/images/stratego-#{piece}.svg" %>" />
+                <img class="stratego_board player_<%= player_number %>" src="<%= "/images/stratego-#{piece}-cropped.png" %>" />
             <% end %>
           </td>
         <% end %>
       </tr>
     <% end %>
   </table>
+
+  <table width="600" height="100" border="1">
+  <tr class="stratego-board">
+    <%= for {piece, rank} <- @pieces do %>
+      <td class="stratego-board"><%= "#{piece} (#{rank})" %></td>
+    <% end %>
+  </tr>
+  <tr class="stratego-board">
+    <%= for {piece, _} <- @pieces do %>
+      <td class="stratego-board"><img class="stratego_board" src="<%= "/images/stratego-#{piece}-cropped.png" %>" /></td>
+    <% end %>
+  </tr>
+  </table>
+
   </div>
 </section>
