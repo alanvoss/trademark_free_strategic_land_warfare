@@ -17,8 +17,44 @@ import {Socket} from "phoenix"
 import NProgress from "nprogress"
 import {LiveSocket} from "phoenix_live_view"
 
+import jQuery from "jquery"
+import select2 from "select2"
+import "select2/dist/css/select2.css"
+
+// see https://www.poeticoding.com/phoenix-liveview-javascript-hooks-and-select2/
+// for the liveview select2 example I used
+
+let Hooks = {}
+Hooks.SelectModules = {
+  initButton() {
+    let hook = this,
+        $select1 = jQuery(hook.el).find("#module_1"),
+        $select2 = jQuery(hook.el).find("#module_2"),
+        $button = jQuery(hook.el).find("button");
+
+    $select1.select2();
+    $select2.select2();
+
+    $button.click(() => hook.pressed(hook, $select1, $select2));
+    return $button;
+  },
+
+  mounted() {
+    this.initButton();
+  },
+
+  pressed(hook, select1, select2) {
+    let data = [
+      select1.select2('data'),
+      select2.select2('data')
+    ].flat();
+
+    hook.pushEvent("modules-selected", {modules: data})
+  }
+}
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-let liveSocket = new LiveSocket("/live", Socket, {params: {_csrf_token: csrfToken}})
+let liveSocket = new LiveSocket("/live", Socket, {params: {_csrf_token: csrfToken}, hooks: Hooks})
 
 // Show progress bar on live navigation and form submits
 window.addEventListener("phx:page-loading-start", info => NProgress.start())

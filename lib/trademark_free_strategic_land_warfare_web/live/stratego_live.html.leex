@@ -1,6 +1,34 @@
 <section>
-  <h1>Stratego</h1>
+  <!-- Side navigation -->
+  <div class="sidenav">
+    <p>Start new match</p>
 
+    <div class="liveview-select2"
+         phx-hook="SelectModules"
+    >
+    <%= for module_number <- 1..2 do %>
+      <select id="<%= "module_#{module_number}" %>">
+        <%= for {module, name} <- @modules do %>
+          <option value="<%= module %>">
+            <%= name %>
+          </option>
+        <% end %>
+      </select>
+      <br/>
+    <% end %>
+    <button>Go!</button>
+    </div>
+
+    <a href="#">About</a>
+    <a href="#">Services</a>
+    <a href="#">Clients</a>
+    <a href="#">Contact</a>
+  </div>
+
+  <!-- Page content -->
+  <div class="main">
+  <h1>Stratego</h1>
+  <hr/>
   <table class="stratego-board">
     <%= for row <- @rows do %>
       <tr class="stratego-board">
@@ -21,4 +49,5 @@
       </tr>
     <% end %>
   </table>
+  </div>
 </section>
