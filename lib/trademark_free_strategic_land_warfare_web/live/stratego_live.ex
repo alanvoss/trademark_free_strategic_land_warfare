@@ -47,23 +47,22 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
   def handle_event("modules-selected", %{"modules" => modules_data}, socket) do
     modules = Enum.map(modules_data, &(&1["id"] |> String.to_atom()))
     result_game = TrademarkFreeStrategicLandWarfare.Game.go(modules)
-    send(self(), {"continue-game", modules, result_game, 0})
+    send(self(), {"continue-game", result_game, 0})
     {:noreply, socket}
   end
 
-  def handle_info({"continue-game", modules, result_game, index}, socket) do
+  def handle_info({"continue-game", result_game, index}, socket) do
     case get_frame(result_game, index) do
       nil ->
         {:noreply, socket}
 
       frame ->
         :timer.sleep(200)
-        send(self(), {"continue-game", modules, result_game, index + 1})
+        send(self(), {"continue-game", result_game, index + 1})
 
         {:noreply,
          assign(
            socket,
-           modules: modules,
            result: result_game,
            frame_index: index,
            rows: frame.rows,

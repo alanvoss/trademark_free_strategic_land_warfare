@@ -5,6 +5,7 @@
 
     <div class="liveview-select2"
          phx-hook="SelectModules"
+         phx-update="ignore"
     >
     <%= for module_number <- 1..2 do %>
       <select id="<%= "module_#{module_number}" %>">
