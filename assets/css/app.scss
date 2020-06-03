@@ -42,8 +42,8 @@ table.stratego-board {
   border: 0;
   /* border: 1px solid black; */
   border-collapse: collapse;
-  width: 600px;
-  height: 600px;
+  width: 500px;
+  height: 500px;
   table-layout: fixed;
   padding: 0;
   border-spacing: 0;
@@ -54,7 +54,7 @@ tr.stratego-board {
   /* border: 1px solid black; */
   padding: 0;
   border-bottom: 0;
-  height: 60px;
+  height: 50px;
   vertical-align: baseline;
   /* vertical-align: center; */
   padding: 0;
@@ -65,8 +65,8 @@ td.stratego-board {
   border: 0;
   /* border: 1px solid black; */
   text-align: center;
-  height: 60px;
-  width: 60px;
+  height: 50px;
+  width: 50px;
   vertical-align: baseline;
   /* vertical-align: center; */
   border-bottom: 0;
@@ -78,8 +78,8 @@ td.stratego-board {
 }
 
 svg.stratego-board {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   display: block;
 }
 
