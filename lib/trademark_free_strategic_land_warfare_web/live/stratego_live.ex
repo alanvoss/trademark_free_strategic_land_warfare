@@ -19,45 +19,45 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
       player_modules
       |> Enum.map(& &1.name())
 
-    {:ok, assign(socket, rows: Board.new().rows, modules: Enum.zip(player_modules, module_names))}
+    {:ok,
+     assign(
+       socket,
+       rows: Board.new().rows,
+       modules: Enum.zip(player_modules, module_names)
+     )}
   end
 
   @impl true
   def handle_event("modules-selected", %{"modules" => modules_data}, socket) do
-    result =
-      modules_data
-      |> Enum.map(&(&1["id"] |> String.to_atom()))
-      |> TrademarkFreeStrategicLandWarfare.Game.go()
-
-    require IEx
-    IEx.pry()
-
-    {:noreply, assign(socket, modules: modules_data)}
+    modules = Enum.map(modules_data, &(&1["id"] |> String.to_atom()))
+    result_game = TrademarkFreeStrategicLandWarfare.Game.go(modules)
+    send(self(), {"continue-game", modules, result_game, 0})
+    {:noreply, socket}
   end
 
-  @impl true
-  def handle_event("search", %{"q" => query}, socket) do
-    case search(query) do
-      %{^query => vsn} ->
-        {:noreply, redirect(socket, external: "https://hexdocs.pm/#{query}/#{vsn}")}
+  def handle_info({"continue-game", modules, result_game, index}, socket) do
+    case get_frame(result_game, index) do
+      nil ->
+        {:noreply, socket}
 
-      _ ->
+      frame ->
+        :timer.sleep(200)
+        send(self(), {"continue-game", modules, result_game, index + 1})
+
         {:noreply,
-         socket
-         |> put_flash(:error, "No dependencies found matching \"#{query}\"")
-         |> assign(results: %{}, query: query)}
+         assign(
+           socket,
+           modules: modules,
+           result: result_game,
+           frame_index: index,
+           rows: frame.rows,
+           move: frame.move,
+           result: frame.result
+         )}
     end
   end
 
-  defp search(query) do
-    if not TrademarkFreeStrategicLandWarfareWeb.Endpoint.config(:code_reloader) do
-      raise "action disabled when not in development"
-    end
-
-    for {app, desc, vsn} <- Application.started_applications(),
-        app = to_string(app),
-        String.starts_with?(app, query) and not List.starts_with?(desc, ~c"ERTS"),
-        into: %{},
-        do: {app, vsn}
+  defp get_frame(game, index) do
+    Enum.at(game.frames, index)
   end
 end

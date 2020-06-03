@@ -43,6 +43,8 @@
                 <svg class="stratego-board">
                   <rect width="50" height="50" style="fill:blue;stroke:black;stroke-width:5;opacity:0.8" />
                 </svg>
+              <%= %{player: player_number, name: piece} -> %>
+                <img src="<%= "/images/stratego-#{piece}.svg" %>" />
             <% end %>
           </td>
         <% end %>
