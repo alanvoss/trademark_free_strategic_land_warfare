@@ -27,15 +27,27 @@
   <hr/>
   <p>
     <%= if @game_pid do %>
-      P1 (<font color="red">Red</font>): <%= @player_1_name %>, P2 (<font color="blue">Blue</font>): <%= @player_2_name %>,
-      <a phx-click="playback-control" phx-value-action="start">&lt;&lt;</a>&nbsp;
-      <a phx-click="playback-control" phx-value-action="back">&lt;</a>&nbsp;
-      <a phx-click="playback-control" phx-value-action="pause">pause</a>&nbsp;
-      <a phx-click="playback-control" phx-value-action="play">play</a>&nbsp;
-      <a phx-click="playback-control" phx-value-action="forward">&gt;</a>&nbsp;
-      <a phx-click="playback-control" phx-value-action="end">&gt;&gt;</a>
-    <% end %>
+      P1 (<font color="red">Red</font>): <%= @player_1_name %>, P2 (<font color="blue">Blue</font>): <%= @player_2_name %>
+      <%= if @frame_index != 0 do %>
+        <img class="playback-button" phx-click="playback-control" phx-value-action="start" src="/images/player_start.png">&nbsp;
+        <img class="playback-button" phx-click="playback-control" phx-value-action="back" src="/images/player_back.png">&nbsp;
+      <%= else %>
+        <img class="playback-button-disabled" src="/images/player_start.png">&nbsp;
+        <img class="playback-button-disabled" src="/images/player_back.png">&nbsp;
+      <%= end %>
 
+        <img class="playback-button" phx-click="playback-control" phx-value-action="pause" src="/images/player_pause.png">&nbsp;
+
+      <%= if @last_frame_index do %>
+        <img class="playback-button-disabled" src="/images/player_play.png">&nbsp;
+        <img class="playback-button-disabled" src="/images/player_forward.png">&nbsp;
+        <img class="playback-button-disabled" src="/images/player_end.png">&nbsp;
+      <%= else %>
+        <img class="playback-button" phx-click="playback-control" phx-value-action="play" src="/images/player_play.png">&nbsp;
+        <img class="playback-button" phx-click="playback-control" phx-value-action="forward" src="/images/player_forward.png">&nbsp;
+        <img class="playback-button" phx-click="playback-control" phx-value-action="end" src="/images/player_end.png">&nbsp;
+      <%= end %>
+    <% end %>
   <table class="stratego-board">
     <%= for row <- @rows do %>
       <tr class="stratego-board">

@@ -101,6 +101,18 @@ img.stratego-board {
   display: block;
 }
 
+.playback-button {
+  background-color: rgb(255,255,255);
+  width: 25px;
+  height: auto;
+}
+
+.playback-button-disabled {
+  background-color: rgb(100,100,100);
+  width: 25px;
+  height: auto;
+}
+
 .hide {
   display: none;
 }

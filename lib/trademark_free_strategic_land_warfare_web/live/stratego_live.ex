@@ -42,19 +42,16 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
        pieces: pieces,
        player_1_name: "",
        player_2_name: "",
-       game_pid: nil
+       game_pid: nil,
+       frame_index: nil,
+       last_frame_index: nil
      )}
   end
 
   # display turn and result status
-  # display play pause buttons
-  # put player names in top instead of on bottom with colors
-  # player numbers
   # list of games
   # all combos
-  # hover over a piece yields info about that piece, and the coordinate
   # specs for everything public
-  # display first frame immediately
 
   @impl true
   def handle_event("modules-selected", %{"modules" => modules_data}, socket) do
@@ -148,6 +145,7 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
            socket,
            result: result_game,
            frame_index: index,
+           last_frame_index: index == length(result_game.frames) - 1,
            rows: frame.rows,
            move: frame.move,
            result: frame.result
