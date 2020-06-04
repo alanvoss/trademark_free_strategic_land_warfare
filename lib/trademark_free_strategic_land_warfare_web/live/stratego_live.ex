@@ -39,27 +39,107 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
        socket,
        rows: Board.new().rows,
        modules: Enum.zip(player_modules, module_names),
-       pieces: pieces
+       pieces: pieces,
+       player_1_name: "",
+       player_2_name: "",
+       game_pid: nil
+     )}
+  end
+
+  # display turn and result status
+  # display play pause buttons
+  # put player names in top instead of on bottom with colors
+  # player numbers
+  # list of games
+  # all combos
+  # hover over a piece yields info about that piece, and the coordinate
+
+  @impl true
+  def handle_event("modules-selected", %{"modules" => modules_data}, socket) do
+    %{:game_pid => game_pid} = socket.assigns
+    modules = Enum.map(modules_data, &(&1["id"] |> String.to_atom()))
+
+    # game is run in advance
+    result_game = TrademarkFreeStrategicLandWarfare.Game.go(modules)
+
+    # cancel existing game
+    if game_pid do
+      Process.exit(game_pid, :kill)
+    end
+
+    me = self()
+
+    {:ok, game_pid} =
+      Task.start(fn ->
+        task_runner(me, {:start, result_game, 0})
+      end)
+
+    {:noreply,
+     assign(socket,
+       player_1_name: Enum.at(modules, 0).name,
+       player_2_name: Enum.at(modules, 1).name,
+       game_pid: game_pid
      )}
   end
 
   @impl true
-  def handle_event("modules-selected", %{"modules" => modules_data}, socket) do
-    modules = Enum.map(modules_data, &(&1["id"] |> String.to_atom()))
-    result_game = TrademarkFreeStrategicLandWarfare.Game.go(modules)
-    send(self(), {"continue-game", result_game, 0})
+  def handle_event("playback-control", %{"action" => action}, socket)
+      when action in ["pause", "play", "forward", "back", "start", "end"] do
+    %{:game_pid => game_pid} = socket.assigns
+
+    case game_pid do
+      nil ->
+        nil
+
+      pid ->
+        send(pid, action)
+    end
+
     {:noreply, socket}
   end
 
-  def handle_info({"continue-game", result_game, index}, socket) do
+  def task_runner(liveview_pid, {action, game, frame_index} = message) do
+    frames_last_index = length(game.frames) - 1
+
+    receive do
+      act when act in ["play", "forward"] ->
+        next_frame_index = min(frames_last_index, frame_index + 1)
+        send(liveview_pid, {"display", game, next_frame_index})
+        task_runner(liveview_pid, {act, game, next_frame_index})
+
+      "pause" ->
+        send(liveview_pid, {"display", game, frame_index})
+        task_runner(liveview_pid, {"pause", game, frame_index})
+
+      "back" ->
+        next_frame_index = max(0, frame_index - 1)
+        send(liveview_pid, {"display", game, next_frame_index})
+        task_runner(liveview_pid, {"pause", game, next_frame_index})
+
+      "start" ->
+        send(liveview_pid, {"display", game, 0})
+        task_runner(liveview_pid, {"pause", game, 0})
+
+      "end" ->
+        send(liveview_pid, {"display", game, frames_last_index})
+        task_runner(liveview_pid, {"pause", game, frames_last_index})
+    after
+      200 ->
+        if action == "play" do
+          send(self(), action)
+        end
+
+        task_runner(liveview_pid, message)
+    end
+  end
+
+  @impl true
+  def handle_info({"display", result_game, index}, socket) do
     case get_frame(result_game, index) do
       nil ->
         {:noreply, socket}
 
       frame ->
-        :timer.sleep(200)
-        send(self(), {"continue-game", result_game, index + 1})
-
         {:noreply,
          assign(
            socket,
