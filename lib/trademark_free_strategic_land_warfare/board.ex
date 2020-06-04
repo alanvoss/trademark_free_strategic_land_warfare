@@ -34,14 +34,20 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
   }
 
   @type t() :: %__MODULE__{
-          rows: [List.t()],
-          lookup: Map.t()
+          rows: list(list()),
+          lookup: map()
         }
 
+  @type coordinate() :: {integer(), integer()}
+  @type player_number() :: 1 | 2
+  @type direction :: :north | :east | :south | :west
+
+  @spec piece_name_counts() :: map()
   def piece_name_counts() do
     @piece_name_counts
   end
 
+  @spec new() :: %__MODULE__{rows: [List.t()], lookup: map()}
   def new() do
     %__MODULE__{
       rows: @empty_board,
@@ -49,6 +55,8 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     }
   end
 
+  @spec init_pieces(%__MODULE__{}, list(list(atom())), player_number()) ::
+          {:ok, %__MODULE__{rows: list(list()), lookup: map()}} | {:error, binary()}
   def init_pieces(
         %__MODULE__{} = board,
         pieces,
@@ -63,6 +71,8 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     end
   end
 
+  @spec lookup_by_uuid(%__MODULE__{}, binary()) ::
+          nil | {coordinate(), %TrademarkFreeStrategicLandWarfare.Piece{}}
   def lookup_by_uuid(board, uuid) do
     case board.lookup[uuid] do
       nil ->
@@ -73,6 +83,8 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     end
   end
 
+  @spec lookup_by_coord(%__MODULE__{}, coordinate()) ::
+          nil | %TrademarkFreeStrategicLandWarfare.Piece{}
   def lookup_by_coord(board, {x, y}) do
     if x >= 0 and x < 10 and y >= 0 and y < 10 do
       get_in(board.rows, [Access.at(y), Access.at(x)])
@@ -81,16 +93,20 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     end
   end
 
+  @spec remove_pieces(%__MODULE__{}, list(%TrademarkFreeStrategicLandWarfare.Piece{})) ::
+          %__MODULE__{}
   def remove_pieces(%__MODULE__{} = board, pieces) do
     Enum.reduce(pieces, board, fn piece_to_remove, acc ->
       remove_piece(acc, piece_to_remove)
     end)
   end
 
+  @spec remove_piece(%__MODULE__{}, %TrademarkFreeStrategicLandWarfare.Piece{}) :: %__MODULE__{}
   def remove_piece(%__MODULE__{} = board, %Piece{uuid: uuid}) do
     remove_piece(board, uuid)
   end
 
+  @spec remove_piece(%__MODULE__{}, binary()) :: %__MODULE__{}
   def remove_piece(%__MODULE__{} = board, uuid) do
     case lookup_by_uuid(board, uuid) do
       nil ->
@@ -106,6 +122,8 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     end
   end
 
+  @spec place_piece(%__MODULE__{}, %TrademarkFreeStrategicLandWarfare.Piece{}, coordinate()) ::
+          {:error, binary()} | {:ok, %__MODULE__{}}
   def place_piece(_, %Piece{}, {x, y}) when x in [2, 3, 6, 7] and y in [4, 5] do
     {:error, "can't place a piece where a lake is"}
   end
@@ -122,6 +140,10 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
      |> put_in([Access.key(:lookup), piece.uuid], {x, y})}
   end
 
+  @spec(
+    move(%__MODULE__{}, player_number(), binary(), direction(), integer()) :: {:error, binary()},
+    {:ok, %__MODULE__{}}
+  )
   def move(board, player, uuid, direction, count) do
     case lookup_by_uuid(board, uuid) do
       nil ->
@@ -138,10 +160,12 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
   # these maybe functions are for if you choose to (maybe, if player 2) flip
   # the board to think about playing from the bottom to the top always,
   # rather than bottom down (for player 2).
+  @spec maybe_flip(%__MODULE__{}, player_number()) :: RuntimeError
   def maybe_flip(%__MODULE__{}, _) do
     raise "not implemented for boards, only board rows"
   end
 
+  @spec maybe_flip(list(list()), player_number()) :: list(list())
   def maybe_flip(rows, 1), do: rows
 
   def maybe_flip(rows, 2) do
@@ -150,15 +174,18 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     |> Enum.map(&Enum.reverse/1)
   end
 
+  @spec maybe_invert_player_direction(direction(), player_number()) :: direction()
   def maybe_invert_player_direction(direction, 1), do: direction
   def maybe_invert_player_direction(:north, 2), do: :south
   def maybe_invert_player_direction(:south, 2), do: :north
   def maybe_invert_player_direction(:west, 2), do: :east
   def maybe_invert_player_direction(:east, 2), do: :west
 
+  @spec maybe_translate_coord(coordinate(), player_number()) :: coordinate()
   def maybe_translate_coord(coord, 1), do: coord
   def maybe_translate_coord({x, y}, 2), do: {9 - x, 9 - y}
 
+  @spec new_coordinate(coordinate(), direction()) :: nil | coordinate()
   def new_coordinate({x, y}, direction) do
     {new_x, new_y} =
       case direction do
@@ -175,6 +202,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Board do
     end
   end
 
+  @spec mask_board(%__MODULE__{}, player_number()) :: %__MODULE__{}
   def mask_board(board, player) do
     new_rows =
       Enum.map(board.rows, fn row ->
