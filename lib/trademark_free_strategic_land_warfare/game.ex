@@ -5,13 +5,17 @@ defmodule TrademarkFreeStrategicLandWarfare.Frame do
 
   @type t() :: %__MODULE__{
           rows: [List.t()],
-          move: {:ok | :error, String.t()},
-          result: nil | {:ok | :error, String.t()}
-          # result: nil | String.t()
-          # move: String.t(),
-          # result: String.t()
+          move: {:ok | :error, binary()},
+          result: nil | {:ok | :error, binary()}
         }
 
+  @type player_number() :: 1 | 2
+
+  @spec new(
+          list(list()),
+          nil | {:ok, binary()} | {:error, binary()},
+          nil | {:ok, :win, player_number()} | {:ok, binary()} | {:error, binary()}
+        ) :: %__MODULE__{}
   def new(rows, move, result) do
     %__MODULE__{rows: rows, move: move, result: result}
   end
@@ -32,9 +36,13 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
           player_states: [any()],
           board: Board.t(),
           frames: [Frame.t()],
-          timestamp: String.t()
+          timestamp: binary()
         }
 
+  @type player_number() :: 1 | 2
+
+  @spec go([%TrademarkFreeStrategicLandWarfare.Player{}]) ::
+          {:ok, %__MODULE__{}} | {:error, binary()}
   def go(modules) when length(modules) == 2 do
     players =
       modules
@@ -291,6 +299,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
     )
   end
 
+  @spec other_player_number(player_number()) :: player_number()
   def other_player_number(1), do: 2
   def other_player_number(2), do: 1
 

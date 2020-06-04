@@ -27,8 +27,12 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
     marshall: %{rank: 10, lose_when_attacked_by: :spy}
   }
 
+  @type player_number() :: 1 | 2
+
   @names Map.keys(@name_properties)
 
+  @spec new(binary(), player_number()) ::
+          RuntimeError | %__MODULE__{uuid: binary(), player: player_number(), visible: boolean()}
   def new(_, player) when player < 1 or player > 2 do
     raise "player valid range is 1-2!"
   end
@@ -52,11 +56,13 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
     struct(__MODULE__, properties)
   end
 
+  @spec reveal(%__MODULE__{}) :: %__MODULE__{}
   def reveal(piece) do
     %__MODULE__{piece | visible: true}
   end
 
   # current player, show piece
+  @spec maybe_mask(%__MODULE__{}, player_number()) :: %__MODULE__{}
   def maybe_mask(piece = %__MODULE__{player: player}, player) do
     piece
   end
@@ -80,6 +86,8 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
     }
   end
 
+  @spec attack(%__MODULE__{}, %__MODULE__{}) ::
+          {:ok, :win | [remove: [binary()]]} | {:error, binary() | atom()}
   def attack(%__MODULE__{name: :flag}, _), do: {:error, "flag can never be the attacker"}
   def attack(%__MODULE__{name: :bomb}, _), do: {:error, "bomb can never be the attacker"}
   def attack(_, %__MODULE__{name: :flag}), do: {:ok, :win}
@@ -124,6 +132,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
   # and has never moved 2 or more pieces.
   def attack(_, _), do: {:error, :unknown_result}
 
+  @spec names() :: list(atom())
   def names() do
     @names
   end

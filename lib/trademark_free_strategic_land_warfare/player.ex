@@ -4,20 +4,20 @@ defmodule TrademarkFreeStrategicLandWarfare.Player do
   defstruct name: nil, number: nil, module: nil
 
   @type t() :: %__MODULE__{
-          name: String.t(),
+          name: binary(),
           number: Integer.t(),
           module: Atom.t()
         }
 
   @type state() :: any()
-  @type piece_uuid() :: String.t()
+  @type piece_uuid() :: binary()
   @type direction() :: Atom.t()
   @type count() :: Integer.t()
 
   # return a string that your module will be referred by in the tournament.
   #   NOTE: it should be deterministic and return the same thing across
   #         invocations.
-  @callback name() :: String.t()
+  @callback name() :: binary()
 
   # should return a list with 4 lists, each containing 10 piece names
   # with proper counts for each.  See: Board's @piece_name_counts
@@ -47,6 +47,9 @@ defmodule TrademarkFreeStrategicLandWarfare.Player do
               state()
             ) :: {piece_uuid(), direction(), count(), state()}
 
+  @type player_number() :: 1 | 2
+
+  @spec new(module(), player_number()) :: %__MODULE__{} | RuntimeError
   def new(module, number) when number in [1, 2] do
     %__MODULE__{
       name: get_name(module),

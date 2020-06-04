@@ -2,10 +2,17 @@ defmodule TrademarkFreeStrategicLandWarfare.Players.SemiRandomAnother do
   alias TrademarkFreeStrategicLandWarfare.{Board, Player, Piece}
   @behaviour Player
 
+  @type direction() :: :north | :west | :east | :south
+  @type count() :: Integer.t()
+  @type state() :: any()
+
+  @spec name() :: binary()
   def name() do
     "Semi-Random-Another"
   end
 
+  # should return a list with 4 lists of 10 piece-name atoms (:miner, :colonel, etc) per list
+  @spec initial_pieces_placement() :: nonempty_list([Atom.t(), ...])
   def initial_pieces_placement() do
     Board.piece_name_counts()
     |> Enum.flat_map(fn {type, count} ->
@@ -15,6 +22,11 @@ defmodule TrademarkFreeStrategicLandWarfare.Players.SemiRandomAnother do
     |> Enum.chunk_every(10)
   end
 
+  @spec turn(
+          %TrademarkFreeStrategicLandWarfare.Board{},
+          %TrademarkFreeStrategicLandWarfare.Player{},
+          state()
+        ) :: {binary(), direction(), count(), state()}
   def turn(%Board{rows: rows} = board, %Player{number: number}, state) do
     # find all eligible pieces
     move_partitioned_pieces =
