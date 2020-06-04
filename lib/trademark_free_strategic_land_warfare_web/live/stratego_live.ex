@@ -50,10 +50,6 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
      )}
   end
 
-  # list of games
-  # all combos
-  # specs for everything public
-
   @impl true
   def handle_event("modules-selected", %{"modules" => modules_data}, socket) do
     %{:game_pid => game_pid} = socket.assigns
