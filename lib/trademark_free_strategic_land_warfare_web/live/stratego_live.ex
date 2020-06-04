@@ -1,6 +1,6 @@
 defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
   use TrademarkFreeStrategicLandWarfareWeb, :live_view
-  alias TrademarkFreeStrategicLandWarfare.{Game, Board}
+  alias TrademarkFreeStrategicLandWarfare.Board
 
   @impl true
   def mount(_params, _session, socket) do

@@ -27,14 +27,14 @@
   <hr/>
   <p>
     <%= if @game_pid do %>
-      P1 (<font color="red">Red</font>): <%= @player_1_name %>, P2 (<font color="blue">Blue</font>): <%= @player_2_name %>
+      P1 (<font color="red">Red</font>): <%= @player_1_name %>, P2 (<font color="blue">Blue</font>): <%= @player_2_name %><br/>
       <%= if @frame_index != 0 do %>
         <img class="playback-button" phx-click="playback-control" phx-value-action="start" src="/images/player_start.png">&nbsp;
         <img class="playback-button" phx-click="playback-control" phx-value-action="back" src="/images/player_back.png">&nbsp;
-      <%= else %>
+      <% else %>
         <img class="playback-button-disabled" src="/images/player_start.png">&nbsp;
         <img class="playback-button-disabled" src="/images/player_back.png">&nbsp;
-      <%= end %>
+      <% end %>
 
         <img class="playback-button" phx-click="playback-control" phx-value-action="pause" src="/images/player_pause.png">&nbsp;
 
@@ -42,11 +42,11 @@
         <img class="playback-button-disabled" src="/images/player_play.png">&nbsp;
         <img class="playback-button-disabled" src="/images/player_forward.png">&nbsp;
         <img class="playback-button-disabled" src="/images/player_end.png">&nbsp;
-      <%= else %>
+      <% else %>
         <img class="playback-button" phx-click="playback-control" phx-value-action="play" src="/images/player_play.png">&nbsp;
         <img class="playback-button" phx-click="playback-control" phx-value-action="forward" src="/images/player_forward.png">&nbsp;
         <img class="playback-button" phx-click="playback-control" phx-value-action="end" src="/images/player_end.png">&nbsp;
-      <%= end %>
+      <% end %>
     <% end %>
   <table class="stratego-board">
     <%= for row <- @rows do %>
@@ -64,7 +64,7 @@
                 </svg>
               <% %{player: player_number, name: piece} -> %>
                 <img class="player_piece stratego_board player_<%= player_number %>" src="<%= "/images/stratego-#{piece}-cropped.png" %>" />
-                <div class="hide"><%= if column.visible do %>visible<%= else %>invisible<%= end %><br/><%= column.name %><br/><%= column.rank %></div>
+                <div class="hide"><%= if column.visible do %>visible<% else %>invisible<% end %><br/><%= column.name %><br/><%= column.rank %></div>
             <% end %>
           </td>
         <% end %>
