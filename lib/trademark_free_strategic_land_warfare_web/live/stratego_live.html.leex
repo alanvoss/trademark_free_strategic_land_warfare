@@ -1,0 +1,94 @@
+<section>
+  <!-- Side navigation -->
+  <div class="sidenav">
+    <p>Start new match</p>
+
+    <div class="liveview-select2"
+         phx-hook="SelectModules"
+         phx-update="ignore"
+    >
+    <%= for module_number <- 1..2 do %>
+      <select id="<%= "module_#{module_number}" %>">
+        <%= for {module, name} <- @modules do %>
+          <option value="<%= module %>">
+            <%= name %>
+          </option>
+        <% end %>
+      </select>
+      <br/>
+    <% end %>
+    <button>Go!</button>
+    </div>
+  </div>
+
+  <!-- Page content -->
+  <div class="main">
+  <h1>Stratego</h1>
+  <hr/>
+  <p>
+    <%= if @game_pid do %>
+      P1 (<font color="red">Red</font>): <%= @player_1_name %>, P2 (<font color="blue">Blue</font>): <%= @player_2_name %><br/>
+      <%= if @frame_index != 0 do %>
+        <img class="playback-button" phx-click="playback-control" phx-value-action="start" src="/images/player_start.png">&nbsp;
+        <img class="playback-button" phx-click="playback-control" phx-value-action="back" src="/images/player_back.png">&nbsp;
+      <% else %>
+        <img class="playback-button-disabled" src="/images/player_start.png">&nbsp;
+        <img class="playback-button-disabled" src="/images/player_back.png">&nbsp;
+      <% end %>
+
+        <img class="playback-button" phx-click="playback-control" phx-value-action="pause" src="/images/player_pause.png">&nbsp;
+
+      <%= if @last_frame_index do %>
+        <img class="playback-button-disabled" src="/images/player_play.png">&nbsp;
+        <img class="playback-button-disabled" src="/images/player_forward.png">&nbsp;
+        <img class="playback-button-disabled" src="/images/player_end.png">&nbsp;
+      <% else %>
+        <img class="playback-button" phx-click="playback-control" phx-value-action="play" src="/images/player_play.png">&nbsp;
+        <img class="playback-button" phx-click="playback-control" phx-value-action="forward" src="/images/player_forward.png">&nbsp;
+        <img class="playback-button" phx-click="playback-control" phx-value-action="end" src="/images/player_end.png">&nbsp;
+      <% end %>
+      <br/>
+      <b>move:</b> <%= inspect(@move) %>
+      <br/>
+      <b>result:</b> <%= inspect(@result) %>
+    <% end %>
+  </p>
+  <table class="stratego-board">
+    <%= for row <- @rows do %>
+      <tr class="stratego-board">
+        <%= for column <- row do %>
+          <td class="stratego-board">
+            <%= case column do %>
+              <% nil -> %>
+                <svg class="stratego-board">
+                  <rect width="50" height="50" style="fill:green;stroke:black;stroke-width:5;opacity:0.8" />
+                </svg>
+              <% :lake -> %>
+                <svg class="stratego-board">
+                  <rect width="50" height="50" style="fill:blue;stroke:black;stroke-width:5;opacity:0.8" />
+                </svg>
+              <% %{player: player_number, name: piece} -> %>
+                <img class="player_piece stratego_board player_<%= player_number %>" src="<%= "/images/stratego-#{piece}-cropped.png" %>" />
+                <div class="hide"><%= if column.visible do %>visible<% else %>invisible<% end %><br/><%= column.name %><br/><%= column.rank %></div>
+            <% end %>
+          </td>
+        <% end %>
+      </tr>
+    <% end %>
+  </table>
+
+  <table width="600" height="100" border="1">
+  <tr class="stratego-board">
+    <%= for {piece, rank} <- @pieces do %>
+      <td class="stratego-board"><%= "#{piece} (#{rank})" %></td>
+    <% end %>
+  </tr>
+  <tr class="stratego-board">
+    <%= for {piece, _} <- @pieces do %>
+      <td class="stratego-board"><img class="stratego_board" src="<%= "/images/stratego-#{piece}-cropped.png" %>" /></td>
+    <% end %>
+  </tr>
+  </table>
+
+  </div>
+</section>

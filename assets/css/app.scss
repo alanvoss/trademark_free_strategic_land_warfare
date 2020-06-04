@@ -38,6 +38,154 @@
   background-color: rgba(0,0,0,0.4);
 }
 
+table.stratego-board {
+  border: 0;
+  /* border: 1px solid black; */
+  border-collapse: collapse;
+  width: 500px;
+  height: 500px;
+  table-layout: fixed;
+  padding: 0;
+  border-spacing: 0;
+}
+
+tr.stratego-board {
+  border: 0;
+  /* border: 1px solid black; */
+  padding: 0;
+  border-bottom: 0;
+  height: 50px;
+  vertical-align: baseline;
+  /* vertical-align: center; */
+  padding: 0;
+  border-spacing: 0;
+}
+
+td.stratego-board {
+  border: 0;
+  /* border: 1px solid black; */
+  text-align: center;
+  height: 50px;
+  width: 50px;
+  vertical-align: baseline;
+  /* vertical-align: center; */
+  border-bottom: 0;
+  padding: 0;
+  border-spacing: 0;
+  margin: 0;
+  box-sizing: border-box;
+  padding-bottom: 0;
+}
+
+svg.stratego-board {
+  width: 50px;
+  height: 50px;
+  display: block;
+}
+
+img.stratego-board {
+  width: 50px;
+  height: 50px;
+  display: block;
+  /* max-width:100%; */
+  height:auto;
+}
+
+.player_1 {
+  background-color: rgb(255,100,100);
+  display: block;
+}
+
+.player_2 {
+  background-color: rgb(100,100,255);
+  display: block;
+}
+
+.playback-button {
+  background-color: rgb(255,255,255);
+  width: 25px;
+  height: auto;
+}
+
+.playback-button-disabled {
+  background-color: rgb(100,100,100);
+  width: 25px;
+  height: auto;
+}
+
+.hide {
+  display: none;
+}
+
+.player_piece:hover + .hide {
+  display: block;
+  color: red;
+}
+
+/* The sidebar menu */
+.sidenav {
+  height: 100%; /* Full-height: remove this if you want "auto" height */
+  width: 260px; /* Set the width of the sidebar */
+  position: fixed; /* Fixed Sidebar (stay in place on scroll) */
+  z-index: 1; /* Stay on top */
+  top: 0; /* Stay at the top */
+  left: 0;
+  background-color: #111; /* Black */
+  overflow-x: hidden; /* Disable horizontal scroll */
+  padding-top: 20px;
+}
+
+/* The navigation menu links */
+.sidenav a {
+  padding: 6px 8px 6px 16px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
+}
+
+/* When you mouse over the navigation links, change their color */
+.sidenav a:hover {
+  color: #f1f1f1;
+}
+
+/* Style page content */
+.main {
+  margin-left: 160px; /* Same as the width of the sidebar */
+  padding: 0px 10px;
+}
+
+.sidenav p {
+  color: #f1f1f1;
+  padding: 0px 10px;
+}
+
+.sidenav select{
+  width: 220px;
+  height: 30px;
+  color: green;
+  padding: 0px 10px;
+}
+
+.sidenav select option { color: #f1f1f1; }
+.sidenav select option:first-child{
+  color: green;
+}
+
+.sidenav button {
+  background-color: green;
+  color: white;
+  text-decoration: none;
+  font-size: 16px;
+  display: inline-block;
+}
+
+/* On smaller screens, where height is less than 450px, change the style of the sidebar (less padding and a smaller font size) */
+@media screen and (max-height: 450px) {
+  .sidenav {padding-top: 15px;}
+  .sidenav a {font-size: 18px;}
+}
+
 .phx-modal-content {
   background-color: #fefefe;
   margin: 15% auto;

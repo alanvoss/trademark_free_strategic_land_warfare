@@ -18,6 +18,7 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.Router do
     pipe_through :browser
 
     live "/", PageLive, :index
+    live "/stratego", StrategoLive, :index
   end
 
   # Other scopes may use custom stacks.
