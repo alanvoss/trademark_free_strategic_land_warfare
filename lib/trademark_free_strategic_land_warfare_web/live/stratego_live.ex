@@ -53,6 +53,8 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
   # list of games
   # all combos
   # hover over a piece yields info about that piece, and the coordinate
+  # specs for everything public
+  # display first frame immediately
 
   @impl true
   def handle_event("modules-selected", %{"modules" => modules_data}, socket) do
@@ -61,7 +63,6 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
 
     # game is run in advance
     result_game = TrademarkFreeStrategicLandWarfare.Game.go(modules)
-
     # cancel existing game
     if game_pid do
       Process.exit(game_pid, :kill)
@@ -71,8 +72,10 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
 
     {:ok, game_pid} =
       Task.start(fn ->
-        task_runner(me, {:start, result_game, 0})
+        task_runner(me, {"start", result_game, 0})
       end)
+
+    send(game_pid, "start")
 
     {:noreply,
      assign(socket,

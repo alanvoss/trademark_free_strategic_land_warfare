@@ -19,11 +19,6 @@
     <% end %>
     <button>Go!</button>
     </div>
-
-    <a href="#">About</a>
-    <a href="#">Services</a>
-    <a href="#">Clients</a>
-    <a href="#">Contact</a>
   </div>
 
   <!-- Page content -->
@@ -56,7 +51,8 @@
                   <rect width="50" height="50" style="fill:blue;stroke:black;stroke-width:5;opacity:0.8" />
                 </svg>
               <% %{player: player_number, name: piece} -> %>
-                <img class="stratego_board player_<%= player_number %>" src="<%= "/images/stratego-#{piece}-cropped.png" %>" />
+                <img class="player_piece stratego_board player_<%= player_number %>" src="<%= "/images/stratego-#{piece}-cropped.png" %>" />
+                <div class="hide"><%= if column.visible do %>visible<%= else %>invisible<%= end %><br/><%= column.name %><br/><%= column.rank %></div>
             <% end %>
           </td>
         <% end %>

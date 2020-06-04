@@ -101,6 +101,15 @@ img.stratego-board {
   display: block;
 }
 
+.hide {
+  display: none;
+}
+
+.player_piece:hover + .hide {
+  display: block;
+  color: red;
+}
+
 /* The sidebar menu */
 .sidenav {
   height: 100%; /* Full-height: remove this if you want "auto" height */
