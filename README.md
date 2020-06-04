@@ -67,6 +67,7 @@ structure for this, but I didn't have time (and trust me, this took enough time 
 
   * a way to run all the players against each other
   * a way to run previous games
+  * add unit tests for `Player`, `Players`, and `Game`.
   * help me make the interface better
   * make a human-playable version that can be put online, akin to https://codenames.plus.
   * deploy that to heroku or digital ocean
