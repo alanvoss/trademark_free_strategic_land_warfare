@@ -44,11 +44,12 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
        player_2_name: "",
        game_pid: nil,
        frame_index: nil,
-       last_frame_index: nil
+       last_frame_index: nil,
+       move: nil,
+       result: nil
      )}
   end
 
-  # display turn and result status
   # list of games
   # all combos
   # specs for everything public

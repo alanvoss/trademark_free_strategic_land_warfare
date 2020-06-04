@@ -47,7 +47,12 @@
         <img class="playback-button" phx-click="playback-control" phx-value-action="forward" src="/images/player_forward.png">&nbsp;
         <img class="playback-button" phx-click="playback-control" phx-value-action="end" src="/images/player_end.png">&nbsp;
       <% end %>
+      <br/>
+      <b>move:</b> <%= inspect(@move) %>
+      <br/>
+      <b>result:</b> <%= inspect(@result) %>
     <% end %>
+  </p>
   <table class="stratego-board">
     <%= for row <- @rows do %>
       <tr class="stratego-board">
