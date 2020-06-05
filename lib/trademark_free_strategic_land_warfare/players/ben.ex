@@ -86,7 +86,6 @@ defmodule TrademarkFreeStrategicLandWarfare.Players.Ben do
         |> Enum.random()
         |> Tuple.append(state)
     end
-    |> IO.inspect()
   end
 
   defp partition_by_move(pieces, board) do
