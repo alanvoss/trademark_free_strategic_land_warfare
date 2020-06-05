@@ -190,7 +190,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
               List.update_at(game.player_states, player_number - 1, fn _ -> state end),
               player_number,
               {:ok,
-               "player #{player_number} captured player #{other_player_number(player_number)}'s flag"}
+               "player #{player_number} captured player #{other_player_number(player_number)}'s flag after #{turn_count} moves"}
             )
 
           {:ok, new_board} ->
