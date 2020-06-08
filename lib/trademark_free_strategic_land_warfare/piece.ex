@@ -4,7 +4,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Piece do
   defstruct uuid: nil, player: nil, name: nil, visible: nil, rank: nil, lose_when_attacked_by: nil
 
   @type t() :: %__MODULE__{
-          uuid: String.t(),
+          uuid: binary(),
           player: Integer.t(),
           name: Atom.t(),
           visible: boolean(),
