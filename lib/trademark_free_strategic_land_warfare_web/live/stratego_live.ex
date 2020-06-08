@@ -1,24 +1,9 @@
 defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
   use TrademarkFreeStrategicLandWarfareWeb, :live_view
-  alias TrademarkFreeStrategicLandWarfare.Board
+  alias TrademarkFreeStrategicLandWarfare.{Board, Tournament}
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, modules} = :application.get_key(:trademark_free_strategic_land_warfare, :modules)
-
-    player_modules =
-      Enum.filter(
-        modules,
-        &String.starts_with?(
-          Atom.to_string(&1),
-          "Elixir.TrademarkFreeStrategicLandWarfare.Players"
-        )
-      )
-
-    module_names =
-      player_modules
-      |> Enum.map(& &1.name())
-
     pieces = [
       {"marshall", 10},
       {"general", 9},
@@ -38,7 +23,7 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
      assign(
        socket,
        rows: Board.new().rows,
-       modules: Enum.zip(player_modules, module_names),
+       modules: Enum.map(Tournament.all_player_modules(), &{&1, &1.name()}),
        pieces: pieces,
        player_1_name: "",
        player_2_name: "",
@@ -46,35 +31,65 @@ defmodule TrademarkFreeStrategicLandWarfareWeb.StrategoLive do
        frame_index: nil,
        last_frame_index: nil,
        move: nil,
-       result: nil
+       result: nil,
+       tournament: nil
      )}
   end
 
   @impl true
+  def handle_event("start-tournament", _, socket) do
+    {:ok, tournament} = Tournament.go()
+
+    {:noreply,
+     assign(
+       socket,
+       tournament: tournament
+     )}
+  end
+
+  @impl true
+  def handle_event("load-game", %{"gameindex" => gameindex}, socket) do
+    game = Enum.at(socket.assigns.tournament.games, String.to_integer(gameindex))
+    names = Enum.map(game.players, & &1.name)
+    display_game(game, names, socket)
+  end
+
+  @impl true
   def handle_event("modules-selected", %{"modules" => modules_data}, socket) do
-    %{:game_pid => game_pid} = socket.assigns
     modules = Enum.map(modules_data, &(&1["id"] |> String.to_atom()))
+    names = Enum.map(modules, & &1.name())
 
     # game is run in advance
-    result_game = TrademarkFreeStrategicLandWarfare.Game.go(modules)
-    # cancel existing game
-    if game_pid do
-      Process.exit(game_pid, :kill)
+    modules
+    |> TrademarkFreeStrategicLandWarfare.Game.go()
+    |> display_game(names, socket)
+  end
+
+  defp display_game(game, names, socket) do
+    case socket.assigns do
+      %{:game_pid => game_pid} ->
+        # cancel existing game
+        if game_pid do
+          Process.exit(game_pid, :kill)
+        end
+
+      _ ->
+        nil
     end
 
     me = self()
 
     {:ok, game_pid} =
       Task.start(fn ->
-        task_runner(me, {"start", result_game, 0})
+        task_runner(me, {"start", game, 0})
       end)
 
     send(game_pid, "start")
 
     {:noreply,
      assign(socket,
-       player_1_name: Enum.at(modules, 0).name,
-       player_2_name: Enum.at(modules, 1).name,
+       player_1_name: Enum.at(names, 0),
+       player_2_name: Enum.at(names, 1),
        game_pid: game_pid
      )}
   end

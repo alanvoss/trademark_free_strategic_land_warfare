@@ -190,7 +190,9 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
               List.update_at(game.player_states, player_number - 1, fn _ -> state end),
               player_number,
               {:ok,
-               "player #{player_number} captured player #{other_player_number(player_number)}'s flag after #{turn_count} moves"}
+               "player #{player_number} captured player #{other_player_number(player_number)}'s flag after #{
+                 turn_count
+               } moves"}
             )
 
           {:ok, new_board} ->
@@ -302,13 +304,4 @@ defmodule TrademarkFreeStrategicLandWarfare.Game do
   @spec other_player_number(player_number()) :: player_number()
   def other_player_number(1), do: 2
   def other_player_number(2), do: 1
-
-  # # can't move back and forth more than 3 times
-  # # automatic loss when player can't move
-  # # loss when 3 errors in a row returned for game
-  # # loss when timeout on call
-  # # draw when 10000 moves happen without a win
-
-  # # rules http://www.stratego.com/en/play/stratego-rules/
-  # #       https://www.playmonster.com/wp-content/uploads/2018/06/7471_Classic_English_Rules.pdf
 end

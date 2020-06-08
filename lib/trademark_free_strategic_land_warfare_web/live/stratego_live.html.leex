@@ -19,6 +19,28 @@
     <% end %>
     <button>Go!</button>
     </div>
+
+    <p>Start tournament</p>
+    <button phx-click="start-tournament">Battle!</button>
+    <br/>
+    <%= if @tournament do %>
+      <font color="red">Results:</font>
+      <br/>
+      <ul>
+      <%= for {player_name, games_won} <- @tournament.results do %>
+        <li><font color="yellow"><%= player_name %>: <%= games_won %></font></li>
+      <% end %>
+      </ul>
+      <br/>
+      <font color="red">Games (click to load):</font>
+      <ul>
+      <%= for {game, gameindex} <- Enum.with_index(@tournament.games) do %>
+        <li><font color="yellow"><%= Enum.join(Enum.map(game.players, &(&1.name())), " vs. ") %></font>&nbsp;<a style="font-size: 14px" phx-click="load-game" phx-value-gameindex="<%= gameindex %>">load...</a></li>
+      <% end %>
+      </ul>
+    <% end %>
+
+    </p>
   </div>
 
   <!-- Page content -->
@@ -50,6 +72,8 @@
       <b>move:</b> <%= inspect(@move) %>
       <br/>
       <b>result:</b> <%= inspect(@result) %>
+    <% else %>
+      got here for some reason or another
     <% end %>
   </p>
   <table class="stratego-board">
