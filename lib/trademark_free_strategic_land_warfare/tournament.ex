@@ -19,7 +19,7 @@ defmodule TrademarkFreeStrategicLandWarfare.Tournament do
     else
       all_games =
         combos
-        |> Task.async_stream(Game, :go, [], timeout: 25_000)
+        |> Task.async_stream(Game, :go, [], timeout: 60_000)
         |> Enum.map(fn {:ok, game} -> game end)
         |> Enum.to_list()
 
